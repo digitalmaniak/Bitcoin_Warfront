@@ -1,15 +1,17 @@
 // Battle simulation — pure JS, no rendering dependencies (unit-testable).
 //
 // Side 0 = bulls (own x < front), side 1 = bears (own x > front).
-// The frontline is the live price: it drifts as price moves, and a slow
-// anchor-lerp re-centers the war so it never walks off the map.
+// TRUE PRICE MAPPING: world x IS price. front = (price - base) * priceScale,
+// so the war physically advances/retreats as price moves (camera follows).
+// When the front drifts past rebaseAt, the whole world + camera shift by the
+// same offset in one frame (seamless) and the ground ruler renumbers.
 
 export const CFG = {
   fieldX: 70,        // half-width of the battlefield (world units)
   fieldZ: 28,        // half-depth
   poolSize: 4400,    // total unit pool (both sides)
   meshCap: 3000,     // per-side render capacity
-  frontMax: 22,      // max frontline excursion from center
+  rebaseAt: 60,      // world units (= $150) of front travel before rebase
   priceScale: 0.4,   // world units per $
   bucket: 10,        // $ per depth-wall bucket
   wallCap: 24,       // max walls rendered per side
@@ -30,7 +32,8 @@ export function createBattle() {
     freeStack.push(i);
   }
 
-  let price = 0, anchor = 0, front = 0;
+  let price = 0, base = 0, front = 0;
+  const rebaseQ = []; // world-shift offsets, drained by the renderer
   const kills = [0, 0];          // kills[0] = bears slain by bulls
   const volEma = [1, 1];         // rolling aggression per side
   const skullQ = [];             // {x, z, n} drained by effects
@@ -91,8 +94,9 @@ export function createBattle() {
   }
 
   return {
-    units, walls, skullQ, breachQ, CFG,
+    units, walls, skullQ, breachQ, rebaseQ, CFG,
     get front() { return front; },
+    get base() { return base; },
     get price() { return price; },
     get kills() { return kills; },
     get shake() { return shake; },
@@ -109,7 +113,7 @@ export function createBattle() {
 
     setPrice(p) {
       if (!p || !Number.isFinite(p)) return;
-      if (!anchor) anchor = p;
+      if (!base) base = p;
       price = p;
     },
 
@@ -152,7 +156,9 @@ export function createBattle() {
         4,
       );
       const bucket = Math.max(1, Math.min(25, span / 10));
-      const spacing = Math.max(bucket * CFG.priceScale, 1.8);
+      // HONEST placement: walls stand at their true price on the ground ruler.
+      // Width tracks the bucket so tight books get slim adjacent ramparts.
+      const wWidth = Math.max(0.9, bucket * CFG.priceScale * 0.9);
       const bucketize = (levels) => {
         const map = new Map();
         for (const [lp, q] of levels) {
@@ -161,9 +167,12 @@ export function createBattle() {
         }
         const out = [];
         for (const [key, q] of map) {
-          const x = front + key * spacing;
-          if (Math.abs(x) > CFG.fieldX - 8) continue;
-          out.push({ x, h: Math.min(16, 1.9 * Math.sqrt(q)), q, lvl: price + key * bucket });
+          const x = front + key * bucket * CFG.priceScale;
+          if (Math.abs(x - front) > 55) continue;
+          out.push({
+            x, h: Math.min(16, 1.9 * Math.sqrt(q)), q, w: wWidth,
+            lvl: price + key * bucket,
+          });
         }
         out.sort((a, b) => a.x - b.x);
         return out.slice(0, CFG.wallCap);
@@ -191,9 +200,17 @@ export function createBattle() {
     },
 
     update(dt) {
-      // frontline follows price; anchor slowly re-centers the war
-      front = CFG.frontMax * Math.tanh(((price - anchor) * CFG.priceScale) / CFG.frontMax);
-      anchor += (price - anchor) * Math.min(1, dt * 0.35);
+      // true price mapping: the front travels as price moves
+      front = (price - base) * CFG.priceScale;
+      if (Math.abs(front) > CFG.rebaseAt) {
+        const dx = -front;
+        base = price;
+        front = 0;
+        for (const u of units) if (u.alive) u.x += dx;
+        for (const side of ['bid', 'ask']) for (const w of walls[side]) w.x += dx;
+        for (const s of skullQ) s.x += dx;
+        rebaseQ.push(dx);
+      }
 
       volEma[0] *= Math.exp(-dt / 30);
       volEma[1] *= Math.exp(-dt / 30);

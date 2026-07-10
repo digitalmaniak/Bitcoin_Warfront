@@ -171,5 +171,13 @@ export function createExplosions(scene) {
     }
   }
 
-  return { boom, puff, update };
+  function shiftX(dx) {
+    for (const f of fireballs) if (f.life !== Infinity) f.m.position.x += dx;
+    for (const r of rings) if (r.life !== Infinity) r.m.position.x += dx;
+    for (const d of db) if (d.life !== Infinity) d.x += dx;
+    for (const s of smoke) if (s.life !== Infinity) s.sp.position.x += dx;
+    for (const sc of scorch) if (sc.life !== Infinity) sc.m.position.x += dx;
+  }
+
+  return { boom, puff, update, shiftX };
 }

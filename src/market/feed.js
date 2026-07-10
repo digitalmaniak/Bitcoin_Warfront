@@ -1,17 +1,24 @@
-// Feed manager: normalizes every source to the same events and auto-falls-back.
+// Feed manager: normalizes every source to the same events, auto-falls-back,
+// and supports runtime switching (feed.use('coinbase') from the HUD picker).
 //   trade  {side:'buy'|'sell', price, qty, ts}
 //   depth  {bids:[[price,qty],...], asks:[[price,qty],...], ts}
-//   status {name, live}
+//   status {name, live, sim?}
 import { createBinanceFeed } from './adapters/binance.js';
 import { createBitstampFeed } from './adapters/bitstamp.js';
+import { createCoinbaseFeed } from './adapters/coinbase.js';
 import { createFakeFeed } from './adapters/fake.js';
 
-const FACTORIES = { binance: createBinanceFeed, bitstamp: createBitstampFeed, fake: createFakeFeed };
+const FACTORIES = {
+  binance: createBinanceFeed,
+  bitstamp: createBitstampFeed,
+  coinbase: createCoinbaseFeed,
+  fake: createFakeFeed,
+};
+const AUTO_CHAIN = ['binance', 'bitstamp', 'coinbase', 'fake'];
 
 export function startFeed(onEvent) {
-  const want = new URLSearchParams(location.search).get('feed') || 'auto';
-  const chain = want === 'auto' ? ['binance', 'bitstamp', 'fake'] : [want];
-  let idx = 0, current = null, done = false;
+  let current = null, done = false;
+  let chain = [], idx = 0;
 
   const next = () => {
     if (done) return;
@@ -25,6 +32,20 @@ export function startFeed(onEvent) {
     current = factory(onEvent, () => next());
   };
 
-  next();
-  return { stop() { done = true; current && current.stop && current.stop(); } };
+  const use = (want) => {
+    if (done) return;
+    if (current) { current.stop(); current = null; }
+    idx = 0;
+    chain = want === 'auto' ? [...AUTO_CHAIN]
+      : want === 'fake' ? ['fake']
+      : [want, 'fake']; // manual pick still falls back so the war never dies
+    next();
+  };
+
+  use(new URLSearchParams(location.search).get('feed') || 'auto');
+
+  return {
+    use,
+    stop() { done = true; current && current.stop && current.stop(); },
+  };
 }

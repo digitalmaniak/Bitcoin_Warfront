@@ -28,6 +28,9 @@ export function createGrenades(scene, battle, explosions, onBoom) {
       g.z1 = g.z0 + rnd(-4, 4);
       g.m.visible = true;
     },
+    shiftX(dx) {
+      for (const g of pool) if (g.live) { g.x0 += dx; g.x1 += dx; }
+    },
     update(dt) {
       for (const g of pool) {
         if (!g.live) continue;

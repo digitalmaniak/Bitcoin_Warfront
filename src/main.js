@@ -16,6 +16,7 @@ import { createGrenades } from './render/fx/grenades.js';
 import { createTanks } from './render/units/tank.js';
 import { createJets } from './render/units/jet.js';
 import { createCameraRig } from './render/camera.js';
+import { createRuler } from './render/ruler.js';
 import { createPostFX } from './render/postfx.js';
 import { createAudio } from './audio/sound.js';
 import { createHud } from './ui/hud.js';
@@ -37,6 +38,7 @@ const tracers = createTracers(scene, battle);
 const grenades = createGrenades(scene, battle, explosions, (s) => audio.explosion(s));
 const tanks = createTanks(scene, battle, explosions, () => audio.explosion(0.7));
 const rig = createCameraRig(camera, renderer, battle);
+const ruler = createRuler(scene);
 const postfx = createPostFX(renderer, scene, camera);
 
 // slow-mo state (carpet bombs)
@@ -135,7 +137,8 @@ function handleEvent(type, d) {
   }
 }
 
-startFeed(handleEvent);
+const feed = startFeed(handleEvent);
+hud.onFeedSelect((src) => feed.use(src));
 
 // "WHILE YOU WERE GONE" — the backlog of frozen attacks bursts on return;
 // this banner explains it with what the market did in the meantime.
@@ -195,6 +198,19 @@ renderer.setAnimationLoop(() => {
   grenades.update(dt);
   tanks.update(dt);
   jets.update(dt);
+
+  // first price arrived → draw the ruler; rebases → shift world + renumber
+  if (!ruler.built && battle.base) ruler.rebuild(battle.base);
+  for (const dx of battle.rebaseQ.splice(0)) {
+    explosions.shiftX(dx);
+    tracers.shiftX(dx);
+    grenades.shiftX(dx);
+    tanks.shiftX(dx);
+    jets.shiftX(dx);
+    skulls.shiftX(dx);
+    rig.shiftX(dx);
+    ruler.rebuild(battle.base);
+  }
 
   for (const s of battle.skullQ.splice(0)) skulls.spawn(s.x, s.z, s.n);
   for (const b of battle.breachQ.splice(0)) {

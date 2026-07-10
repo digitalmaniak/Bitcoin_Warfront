@@ -21,8 +21,20 @@ export function createCameraRig(camera, renderer, battle) {
 
   return {
     addTrauma(v) { trauma = Math.min(1.2, trauma + v); },
+    // seamless world rebase: move with everything else, no visible jump
+    shiftX(dx) {
+      camera.position.x += dx;
+      controls.target.x += dx;
+    },
     update(dt, t) {
       camera.position.sub(off); // undo last frame's shake before controls read it
+
+      // lazy follow: ease the whole rig toward the front (~2s), preserving
+      // the user's orbit angle by shifting target and camera together
+      const fdx = (battle.front - controls.target.x) * Math.min(1, dt * 0.5);
+      controls.target.x += fdx;
+      camera.position.x += fdx;
+
       controls.update();
 
       trauma *= Math.exp(-dt * 2.2);

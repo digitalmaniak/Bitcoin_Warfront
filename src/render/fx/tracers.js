@@ -78,5 +78,9 @@ export function createTracers(scene, battle) {
     }
   }
 
-  return { update };
+  function shiftX(dx) {
+    for (const side of slots) for (const s of side) if (s.live) s.x += dx;
+  }
+
+  return { update, shiftX };
 }

@@ -30,6 +30,7 @@ export function createJets(scene, battle, onImpact, explosions) {
   const jets = [];
   for (let i = 0; i < 4; i++) {
     const m = new THREE.Mesh(geo, mats[0]);
+    m.scale.setScalar(2);
     m.visible = false; scene.add(m);
     jets.push({
       m, active: false, side: 0, x: 0, z: 0, y: 24,
@@ -103,6 +104,10 @@ export function createJets(scene, battle, onImpact, explosions) {
 
   return {
     strike(side, kills) { spawnJet(side, kills, {}); },
+    shiftX(dx) {
+      for (const j of jets) if (j.active) j.x += dx;
+      for (const ms of missiles) if (ms.active) ms.x += dx;
+    },
     // dry flyover — pure theater, no ordnance (intro animation)
     flyover(side, zoff = 0) { spawnJet(side, 0, { dry: true, zoff, y: 17, speed: 115 }); },
     // strafing run — artillery-budget spender, 3 small bombs

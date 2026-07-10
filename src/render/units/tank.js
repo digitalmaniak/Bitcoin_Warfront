@@ -31,6 +31,7 @@ export function createTanks(scene, battle, explosions, onFire) {
   for (let side = 0; side < 2; side++) {
     for (let i = 0; i < 5; i++) {
       const m = new THREE.Mesh(geo, mats[side]);
+      m.scale.setScalar(2);
       m.visible = false; scene.add(m);
       pool.push({ m, side, active: false, x: 0, z: 0, state: 'in', fireT: 0, life: 0, recoil: 0 });
     }
@@ -49,6 +50,10 @@ export function createTanks(scene, battle, explosions, onFire) {
       t.life = 40; t.fireT = 1.5; t.recoil = 0;
       t.m.rotation.y = side === 0 ? 0 : Math.PI; // barrel faces the enemy
       t.m.visible = true;
+    },
+
+    shiftX(dx) {
+      for (const t of pool) if (t.active) t.x += dx;
     },
 
     // enemy ordnance landed at (x,z) — destroy tanks caught in the blast

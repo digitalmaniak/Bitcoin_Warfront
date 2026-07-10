@@ -4,8 +4,8 @@ import { CFG } from '../sim/battle.js';
 // Order-book depth as translucent ramparts. Heights lerp toward sim targets
 // so walls visibly grow, get eaten, and vanish when pulled.
 export function createWalls(scene, battle) {
-  const geo = new THREE.BoxGeometry(3.2, 1, CFG.fieldZ * 2 * 0.95);
-  geo.translate(0, 0.5, 0); // grow upward from the ground
+  const geo = new THREE.BoxGeometry(1, 1, CFG.fieldZ * 2 * 0.95);
+  geo.translate(0, 0.5, 0); // grow upward from the ground; width via scale.x
 
   const mk = (color, emissive) => {
     const im = new THREE.InstancedMesh(
@@ -38,7 +38,7 @@ export function createWalls(scene, battle) {
         heights[i] += (target - heights[i]) * k;
         if (w && heights[i] > 0.05) {
           dummy.position.set(w.x, 0, 0);
-          dummy.scale.set(1, heights[i], 1);
+          dummy.scale.set(w.w || 3.2, heights[i], 1);
         } else {
           dummy.position.set(0, -5, 0);
           dummy.scale.set(0.001, 0.001, 0.001);

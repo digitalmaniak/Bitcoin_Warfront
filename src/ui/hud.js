@@ -1,7 +1,15 @@
 export function createHud() {
   const root = document.getElementById('hud');
   root.innerHTML = `
-    <div class="feed"><div class="dot" id="feed-dot"></div><span id="feed-name">CONNECTING…</span></div>
+    <div class="feed" id="feed">
+      <div class="dot" id="feed-dot"></div><span id="feed-name">CONNECTING…</span><span id="feed-arrow">▾</span>
+      <div class="feed-menu" id="feed-menu">
+        <div class="fitem sel" data-src="auto">AUTO</div>
+        <div class="fitem" data-src="binance">BINANCE</div>
+        <div class="fitem" data-src="bitstamp">BITSTAMP</div>
+        <div class="fitem" data-src="coinbase">COINBASE</div>
+      </div>
+    </div>
     <div id="round">ROUND 1</div>
     <div class="price-wrap">
       <div id="price">—</div>
@@ -108,6 +116,23 @@ export function createHud() {
       el.whale.className = 'show';
       clearTimeout(whaleT);
       whaleT = setTimeout(() => { el.whale.className = ''; }, 3200);
+    },
+    // feed source picker: cb(src) called with 'auto'|'binance'|'bitstamp'|'coinbase'
+    onFeedSelect(cb) {
+      const feed = document.getElementById('feed');
+      feed.addEventListener('click', () => feed.classList.toggle('open'));
+      window.addEventListener('click', (e) => {
+        if (!feed.contains(e.target)) feed.classList.remove('open');
+      });
+      for (const item of feed.querySelectorAll('.fitem')) {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          feed.querySelectorAll('.fitem').forEach((i) => i.classList.remove('sel'));
+          item.classList.add('sel');
+          feed.classList.remove('open');
+          cb(item.dataset.src);
+        });
+      }
     },
     // pulse a ladder row when its tier fires: 'grenade'|'tank'|'air'|'carpet'|'pot'
     flashTier(tier) {

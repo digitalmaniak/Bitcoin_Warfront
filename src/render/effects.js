@@ -36,6 +36,9 @@ export function createEffects(scene) {
       const size = 3.5 + n * 1.1;
       for (let i = 0; i < Math.min(n, 4); i++) spawnOne(x, z, size);
     },
+    shiftX(dx) {
+      for (const s of sprites) if (s.life !== Infinity) s.sp.position.x += dx;
+    },
     update(dt) {
       for (const s of sprites) {
         if (s.life === Infinity) continue;
