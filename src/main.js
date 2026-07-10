@@ -91,8 +91,11 @@ let sessionOpen = 0;
 let buyV = 0, sellV = 0;
 let round = 1;
 
+let bannerLockUntil = 0; // "while you were gone" gets banner priority
+
 const candles = createCandles((c) => {
   round = c.round + 1;
+  if (Date.now() < bannerLockUntil) return; // don't stomp the return banner
   const d = c.c - c.o;
   const dir = Math.abs(d) < 1 ? 'flat' : d > 0 ? 'bulls' : 'bears';
   const title =
@@ -115,6 +118,10 @@ function handleEvent(type, d) {
 
     const res = arsenal.process(d);
     artillery.add(d.side === 'buy' ? 0 : 1, d.qty);
+    if (away && document.hidden) { // tally the battle we're missing
+      away.v += d.qty;
+      if (res.whale) away.whales++;
+    }
     if (d.side === 'buy') buyV += d.qty; else sellV += d.qty;
     if (res.carpet) {
       hud.whale(`🚨 ${d.qty.toFixed(1)} BTC ${d.side.toUpperCase()} — SQUADRON INBOUND`);
@@ -129,6 +136,32 @@ function handleEvent(type, d) {
 }
 
 startFeed(handleEvent);
+
+// "WHILE YOU WERE GONE" — the backlog of frozen attacks bursts on return;
+// this banner explains it with what the market did in the meantime.
+let away = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    away = { t: Date.now(), price: lastPrice, v: 0, whales: 0 };
+    return;
+  }
+  if (!away) return;
+  const secs = (Date.now() - away.t) / 1000;
+  const snap = away;
+  away = null;
+  if (secs < 5 || !snap.price || !lastPrice) return;
+  const d = lastPrice - snap.price;
+  const cls = Math.abs(d) < 1 ? 'flat' : d > 0 ? 'bulls' : 'bears';
+  const parts = [`${d >= 0 ? '+' : '−'}$${Math.abs(d).toFixed(0)}`];
+  if (snap.v > 0) parts.push(`${snap.v.toFixed(1)} BTC TRADED`);
+  if (snap.whales) parts.push(`${snap.whales} WHALE STRIKE${snap.whales > 1 ? 'S' : ''}`);
+  parts.push(secs > 90 ? `${Math.round(secs / 60)}m AWAY` : `${Math.round(secs)}s AWAY`);
+  bannerLockUntil = Date.now() + 5200;
+  setTimeout(() => {
+    hud.banner('WHILE YOU WERE GONE', cls, parts.join(' · '), 4500);
+    rig.addTrauma(0.25);
+  }, 450); // let the resume burst start first, then explain it
+});
 
 // Demo hotkeys — synthetic trades through the exact same pipeline.
 const inject = (side, qty) => handleEvent('trade', {

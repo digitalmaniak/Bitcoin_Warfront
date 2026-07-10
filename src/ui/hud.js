@@ -60,9 +60,15 @@ export function createHud() {
   let bannerT = 0, whaleT = 0;
   const flashT = {};
 
+  // Ladder opens on load, auto-collapses after 10s (cancelled if the user
+  // interacts with it first — they're clearly reading it).
+  const ladder = document.getElementById('ladder');
+  const autoCollapse = setTimeout(() => ladder.classList.add('collapsed'), 10000);
   document.getElementById('ladder-head').addEventListener('click', () => {
-    document.getElementById('ladder').classList.toggle('collapsed');
+    clearTimeout(autoCollapse);
+    ladder.classList.toggle('collapsed');
   });
+  ladder.addEventListener('pointerenter', () => clearTimeout(autoCollapse), { once: true });
 
   const fmtPrice = (p) => p
     ? '$' + p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -91,11 +97,11 @@ export function createHud() {
       el.bv.textContent = `BUY ${buyV.toFixed(1)}`;
       el.sv.textContent = `SELL ${sellV.toFixed(1)}`;
     },
-    banner(title, cls, sub) {
+    banner(title, cls, sub, dur = 2800) {
       el.banner.innerHTML = `${title}<span class="bsub">${sub}</span>`;
       el.banner.className = `show ${cls}`;
       clearTimeout(bannerT);
-      bannerT = setTimeout(() => { el.banner.className = cls; }, 2800);
+      bannerT = setTimeout(() => { el.banner.className = cls; }, dur);
     },
     whale(text) {
       el.whale.textContent = text;

@@ -66,8 +66,9 @@
     .ladder-head:hover{color:#c9c9d2;}
     #ladder-arrow{transition:transform .25s;}
     .ladder.collapsed #ladder-arrow{transform:rotate(-90deg);}
-    #ladder-body{max-height:340px;overflow:hidden;transition:max-height .3s ease;}
-    .ladder.collapsed #ladder-body{max-height:0;}
+    #ladder-body{max-height:340px;overflow:hidden;opacity:1;
+      transition:max-height .7s ease,opacity .55s ease;}
+    .ladder.collapsed #ladder-body{max-height:0;opacity:0;}
     .lrow{display:flex;align-items:center;gap:9px;padding:6px 9px;margin-top:4px;
       background:rgba(20,20,28,.55);border:1px solid #26262e;border-left:3px solid var(--c);
       border-radius:6px;transition:box-shadow .25s,border-color .25s,background .25s;}
