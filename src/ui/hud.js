@@ -7,16 +7,18 @@ export function createHud() {
       <div id="price">—</div>
       <div class="sub">BTC/USD <span id="chg">0.00%</span></div>
     </div>
-    <div class="kills" id="kills-bulls"><span class="n" id="kb">0</span>BEARS SLAIN</div>
-    <div class="kills" id="kills-bears"><span class="n" id="kr">0</span>BULLS SLAIN</div>
+    <div class="kills" id="kills-bulls"><span class="n" id="kb">0</span>BEARS SLAIN
+      <div class="pot" title="ordnance charge"><div id="pot-b"></div></div></div>
+    <div class="kills" id="kills-bears"><span class="n" id="kr">0</span>BULLS SLAIN
+      <div class="pot pot-right" title="ordnance charge"><div id="pot-r"></div></div></div>
     <div id="whale"></div>
     <div id="banner"></div>
     <div class="tug">
       <div class="tug-bar"><div id="tug-buy"></div></div>
       <div class="tug-labels"><span id="bv">BUY 0.0</span><span id="sv">SELL 0.0</span></div>
     </div>
-    <button id="mute" title="toggle sound">🔊</button>
-    <div class="hint">1 whale buy · 2 whale sell · 3 cascade · drag to orbit · ?feed=fake</div>`;
+    <button id="mute" title="toggle sound">🔇</button>
+    <div class="hint">1 whale buy · 2 whale sell · 3 cascade · drag to orbit · scroll to zoom</div>`;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -24,6 +26,7 @@ export function createHud() {
     price: $('price'), chg: $('chg'), kb: $('kb'), kr: $('kr'),
     tug: $('tug-buy'), bv: $('bv'), sv: $('sv'),
     banner: $('banner'), whale: $('whale'),
+    potB: $('pot-b'), potR: $('pot-r'),
   };
   let bannerT = 0, whaleT = 0;
 
@@ -33,11 +36,15 @@ export function createHud() {
   const fmtInt = (n) => n.toLocaleString('en-US');
 
   return {
-    setFeed(name, live) {
+    setFeed(name, live, sim) {
       el.feedName.textContent = name;
-      el.dot.className = 'dot ' + (live ? 'live' : name.startsWith('SIMULATED') ? 'sim' : '');
+      el.dot.className = 'dot ' + (live ? 'live' : sim ? 'sim' : '');
     },
-    update({ price, chg, buyV, sellV, kills, round }) {
+    update({ price, chg, buyV, sellV, kills, round, pots }) {
+      if (pots) {
+        el.potB.style.width = `${pots[0] * 100}%`;
+        el.potR.style.width = `${pots[1] * 100}%`;
+      }
       el.price.textContent = fmtPrice(price);
       const up = chg >= 0;
       el.chg.textContent = `${up ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%`;

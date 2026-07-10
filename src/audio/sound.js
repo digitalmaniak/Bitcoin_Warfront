@@ -1,7 +1,7 @@
 // WebAudio-synthesized battle audio — zero audio files.
 // Context starts on first user gesture (browser autoplay policy).
 export function createAudio() {
-  let ctx = null, master = null, muted = false, lastShot = 0;
+  let ctx = null, master = null, muted = true, lastShot = 0; // muted by default
 
   const ensure = () => {
     if (!ctx) {

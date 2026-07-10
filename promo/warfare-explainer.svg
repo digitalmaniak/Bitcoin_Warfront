@@ -1,0 +1,109 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" font-family="'DejaVu Sans Mono', Menlo, monospace">
+  <rect width="1600" height="900" fill="#0a0a0f"/>
+
+  <!-- header -->
+  <text x="60" y="82" fill="#ffffff" font-size="46" font-weight="bold" letter-spacing="6">BITCOIN WARFRONT</text>
+  <text x="60" y="112" fill="#9a9aa5" font-size="17" letter-spacing="4">LIVE BTC/USD TRADES RENDERED AS WAR — EVERY TRADE IS AN ATTACK</text>
+  <text x="1540" y="78" fill="#ffffff" font-size="38" font-weight="bold" text-anchor="end">$59,977.99</text>
+  <text x="1418" y="106" fill="#9a9aa5" font-size="16" text-anchor="end">BTC/USD ·</text>
+  <text x="1430" y="106" fill="#2ecc71" font-size="16">● LIVE FEED</text>
+  <line x1="60" y1="140" x2="1540" y2="140" stroke="#222228" stroke-width="1.5"/>
+
+  <!-- left: how the war is waged -->
+  <text x="60" y="186" fill="#9a9aa5" font-size="20" letter-spacing="4">HOW THE WAR IS WAGED</text>
+
+  <text x="430" y="226" fill="#ffffff" font-size="17" letter-spacing="2" text-anchor="middle">FRONTLINE = LIVE PRICE</text>
+
+  <rect x="60" y="244" width="340" height="236" rx="10" fill="#0f2b1c" stroke="#2ecc71" stroke-width="1.5"/>
+  <rect x="460" y="244" width="340" height="236" rx="10" fill="#2b100d" stroke="#e74c3c" stroke-width="1.5"/>
+  <line x1="430" y1="238" x2="430" y2="492" stroke="#ffffff" stroke-width="2" stroke-dasharray="8 6"/>
+
+  <text x="230" y="340" fill="#2ecc71" font-size="26" font-weight="bold" letter-spacing="3" text-anchor="middle">BUYER ARMY</text>
+  <text x="230" y="370" fill="#9a9aa5" font-size="15" text-anchor="middle">market buys charge right →</text>
+  <text x="230" y="396" fill="#9a9aa5" font-size="15" text-anchor="middle">bids hold the ground</text>
+
+  <text x="630" y="340" fill="#e74c3c" font-size="26" font-weight="bold" letter-spacing="3" text-anchor="middle">SELLER ARMY</text>
+  <text x="630" y="370" fill="#9a9aa5" font-size="15" text-anchor="middle">← market sells charge left</text>
+  <text x="630" y="396" fill="#9a9aa5" font-size="15" text-anchor="middle">asks hold the ground</text>
+
+  <!-- depth walls flanking the frontline -->
+  <rect x="402" y="440" width="8" height="40" fill="#2ecc71"/>
+  <rect x="412" y="412" width="8" height="68" fill="#2ecc71"/>
+  <rect x="421" y="374" width="8" height="106" fill="#2ecc71"/>
+  <rect x="431" y="374" width="8" height="106" fill="#e74c3c"/>
+  <rect x="440" y="412" width="8" height="68" fill="#e74c3c"/>
+  <rect x="450" y="440" width="8" height="40" fill="#e74c3c"/>
+  <text x="430" y="514" fill="#9a9aa5" font-size="14" letter-spacing="1" text-anchor="middle">WALLS = ORDER-BOOK DEPTH</text>
+
+  <!-- skull -->
+  <circle cx="430" cy="264" r="13" fill="#e8e8e8"/>
+  <circle cx="425" cy="262" r="3.4" fill="#0a0a0f"/>
+  <circle cx="435" cy="262" r="3.4" fill="#0a0a0f"/>
+  <rect x="425" y="272" width="10" height="5" rx="1.5" fill="#e8e8e8"/>
+
+  <!-- mechanics bullets -->
+  <rect x="60" y="556" width="10" height="10" fill="#2ecc71"/>
+  <text x="84" y="566" fill="#c9c9d2" font-size="17">Trade size → attack size (log-scaled vs rolling average)</text>
+  <rect x="60" y="592" width="10" height="10" fill="#e74c3c"/>
+  <text x="84" y="602" fill="#c9c9d2" font-size="17">Casualties = liquidity consumed at the frontline</text>
+  <rect x="60" y="628" width="10" height="10" fill="#f5b043"/>
+  <text x="84" y="638" fill="#c9c9d2" font-size="17">Every 1-minute candle = one round · body = ground gained</text>
+  <rect x="60" y="664" width="10" height="10" fill="#a78bfa"/>
+  <text x="84" y="674" fill="#c9c9d2" font-size="17">Big walls eaten as price crosses → "WALL BREACHED"</text>
+  <rect x="60" y="700" width="10" height="10" fill="#e8e8e8"/>
+  <text x="84" y="710" fill="#c9c9d2" font-size="17">Skulls mark heavy losses · the camera shakes on impact</text>
+
+  <!-- right: escalation ladder -->
+  <text x="900" y="186" fill="#9a9aa5" font-size="20" letter-spacing="4">ESCALATION LADDER</text>
+  <text x="900" y="212" fill="#63636d" font-size="14">r = trade size ÷ rolling average trade size</text>
+
+  <!-- row 1: infantry -->
+  <rect x="900" y="228" width="640" height="88" rx="12" fill="#14141c" stroke="#3a3a44" stroke-width="1.5"/>
+  <rect x="942" y="258" width="9" height="24" rx="4.5" fill="#9a9aa5"/>
+  <rect x="957" y="252" width="9" height="24" rx="4.5" fill="#9a9aa5"/>
+  <rect x="972" y="258" width="9" height="24" rx="4.5" fill="#9a9aa5"/>
+  <text x="1020" y="268" fill="#ffffff" font-size="22" font-weight="bold">INFANTRY CHARGE</text>
+  <text x="1020" y="296" fill="#9a9aa5" font-size="15">every trade sends mech troopers</text>
+  <text x="1510" y="280" fill="#9a9aa5" font-size="20" font-weight="bold" text-anchor="end">always</text>
+
+  <!-- row 2: grenades -->
+  <rect x="900" y="324" width="640" height="88" rx="12" fill="#14141c" stroke="#2dd4bf" stroke-width="1.5"/>
+  <circle cx="958" cy="374" r="12" fill="#2dd4bf"/>
+  <rect x="951" y="352" width="14" height="9" rx="2" fill="#2dd4bf"/>
+  <text x="1020" y="364" fill="#ffffff" font-size="22" font-weight="bold">GRENADES</text>
+  <text x="1020" y="392" fill="#9a9aa5" font-size="15">arc lob · cluster blast at the line</text>
+  <text x="1510" y="376" fill="#2dd4bf" font-size="20" font-weight="bold" text-anchor="end">r ≥ 8</text>
+
+  <!-- row 3: tank -->
+  <rect x="900" y="420" width="640" height="88" rx="12" fill="#14141c" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="934" y="468" width="42" height="14" rx="4" fill="#a78bfa"/>
+  <rect x="946" y="456" width="17" height="11" rx="2" fill="#a78bfa"/>
+  <rect x="963" y="458" width="20" height="3.5" fill="#a78bfa"/>
+  <text x="1020" y="460" fill="#ffffff" font-size="22" font-weight="bold">TANK DEPLOYED</text>
+  <text x="1020" y="488" fill="#9a9aa5" font-size="15">rolls up · shells the enemy line for 40s</text>
+  <text x="1510" y="472" fill="#a78bfa" font-size="20" font-weight="bold" text-anchor="end">r ≥ 20</text>
+
+  <!-- row 4: jet airstrike -->
+  <rect x="900" y="516" width="640" height="88" rx="12" fill="#14141c" stroke="#f5b043" stroke-width="1.5"/>
+  <polygon points="986,560 936,547 950,560 936,573" fill="#f5b043"/>
+  <text x="1020" y="556" fill="#ffffff" font-size="22" font-weight="bold">JET AIRSTRIKE</text>
+  <text x="1020" y="584" fill="#9a9aa5" font-size="15">whale trade · guided missile · one big blast</text>
+  <text x="1510" y="568" fill="#f5b043" font-size="20" font-weight="bold" text-anchor="end">whale trade</text>
+
+  <!-- row 5: squadron -->
+  <rect x="900" y="612" width="640" height="88" rx="12" fill="#14141c" stroke="#ef5340" stroke-width="1.5"/>
+  <polygon points="972,642 942,634 950,642 942,650" fill="#ef5340"/>
+  <polygon points="986,656 956,648 964,656 956,664" fill="#ef5340"/>
+  <polygon points="972,670 942,662 950,670 942,678" fill="#ef5340"/>
+  <text x="1020" y="652" fill="#ffffff" font-size="22" font-weight="bold">CARPET-BOMB SQUADRON</text>
+  <text x="1020" y="680" fill="#9a9aa5" font-size="15">3 jets · bombing run · slow-mo · max shake</text>
+  <text x="1510" y="664" fill="#ef5340" font-size="20" font-weight="bold" text-anchor="end">3× whale</text>
+
+  <!-- footer -->
+  <line x1="60" y1="790" x2="1540" y2="790" stroke="#222228" stroke-width="1.5"/>
+  <text x="60" y="844" fill="#ffffff" font-size="27" font-weight="bold">LIVE NOW → bitcoin-warfront.vercel.app</text>
+  <text x="925" y="842" fill="#2ecc71" font-size="16">green = buyers</text>
+  <text x="1060" y="842" fill="#9a9aa5" font-size="16">·</text>
+  <text x="1089" y="842" fill="#e74c3c" font-size="16">red = sellers</text>
+  <text x="1214" y="842" fill="#9a9aa5" font-size="16">· powered by live exchange feeds</text>
+</svg>

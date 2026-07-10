@@ -60,8 +60,10 @@ export function createJets(scene, battle, onImpact, explosions) {
     j.m.material = mats[side];
     j.x = -vdir * 150;
     j.z = rnd(-16, 16) + (o.zoff || 0);
-    j.y = 24;
-    j.released = false;
+    j.y = o.y || 24;
+    j.speed = o.speed || 95;
+    j.small = !!o.small;
+    j.released = !!o.dry; // dry pass: never releases ordnance
     j.bombs = o.bombs || 0;
     j.bombT = 0;
     j.kills = kills;
@@ -90,8 +92,9 @@ export function createJets(scene, battle, onImpact, explosions) {
     if (!ms) return;
     const vdir = j.side === 0 ? 1 : -1;
     ms.active = true; ms.ballistic = true;
-    ms.side = j.side; ms.kills = Math.max(3, Math.ceil(j.kills / 2));
-    ms.size = 2.3;
+    ms.side = j.side;
+    ms.kills = j.small ? 2 : Math.max(3, Math.ceil(j.kills / 2));
+    ms.size = j.small ? 1.2 : 2.3;
     ms.x = j.x; ms.y = j.y - 1; ms.z = j.z;
     ms.vx = vdir * 40; ms.vy = -6; ms.vz = 0;
     ms.trailT = 0;
@@ -100,6 +103,10 @@ export function createJets(scene, battle, onImpact, explosions) {
 
   return {
     strike(side, kills) { spawnJet(side, kills, {}); },
+    // dry flyover — pure theater, no ordnance (intro animation)
+    flyover(side, zoff = 0) { spawnJet(side, 0, { dry: true, zoff, y: 17, speed: 115 }); },
+    // strafing run — artillery-budget spender, 3 small bombs
+    strafe(side) { spawnJet(side, 2, { bombs: 3, y: 15, small: true, speed: 105 }); },
     carpet(side, kills) {
       for (let k = 0; k < 3; k++) {
         queue.push({
@@ -117,7 +124,7 @@ export function createJets(scene, battle, onImpact, explosions) {
       for (const j of jets) {
         if (!j.active) continue;
         const vdir = j.side === 0 ? 1 : -1;
-        j.x += vdir * 95 * dt;
+        j.x += vdir * j.speed * dt;
         j.m.position.set(j.x, j.y, j.z);
         j.m.rotation.x = Math.sin(j.x * 0.05) * 0.15; // gentle bank
         j.trailT += dt;

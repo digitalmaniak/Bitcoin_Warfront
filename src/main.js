@@ -4,6 +4,7 @@ import { createCandles } from './market/candles.js';
 import { createNormalizer } from './market/normalize.js';
 import { createBattle } from './sim/battle.js';
 import { createArsenal } from './sim/arsenal.js';
+import { createArtillery } from './sim/artillery.js';
 import { createBus } from './core/bus.js';
 import { createScene } from './render/scene.js';
 import { createArmies } from './render/armies.js';
@@ -25,6 +26,7 @@ const battle = createBattle();
 const bus = createBus();
 const norm = createNormalizer();
 const arsenal = createArsenal(norm, battle, bus);
+const artillery = createArtillery(norm, bus);
 const audio = createAudio();
 
 const armies = createArmies(scene, battle);
@@ -54,6 +56,27 @@ bus.on('grenade', (d) => { for (let i = 0; i < d.count; i++) grenades.spawn(d.si
 bus.on('tank', (d) => tanks.deploy(d.side));
 bus.on('airstrike', (d) => { jets.strike(d.side, d.kills); audio.jet(); });
 bus.on('carpet', (d) => { jets.carpet(d.side, d.kills); audio.jet(); slowMo(); });
+
+// artillery budget tips → rotating hardware
+bus.on('ordnance', (d) => {
+  if (d.kind === 'mortar') {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => grenades.spawn(d.side, { mortar: true }), i * 260);
+    }
+  } else if (d.kind === 'tankSortie') {
+    tanks.deploy(d.side);
+  } else { // strafe
+    jets.strafe(d.side);
+    audio.jet();
+  }
+});
+
+// intro: dry jet flyovers while the infantry populates — nothing fires,
+// it just shows newcomers that things can and will happen here
+const INTRO = [[600, 0, -8], [1100, 1, 6], [1650, 0, 14], [1650, 1, -14]];
+for (const [ms, side, zoff] of INTRO) {
+  setTimeout(() => { jets.flyover(side, zoff); rig.addTrauma(0.12); }, ms);
+}
 
 hud.onMute(() => { audio.setMuted(!audio.muted); return audio.muted; });
 
@@ -85,6 +108,7 @@ function handleEvent(type, d) {
     candles.add(d);
 
     const res = arsenal.process(d);
+    artillery.add(d.side === 'buy' ? 0 : 1, d.qty);
     if (d.side === 'buy') buyV += d.qty; else sellV += d.qty;
     if (res.carpet) {
       hud.whale(`🚨 ${d.qty.toFixed(1)} BTC ${d.side.toUpperCase()} — SQUADRON INBOUND`);
@@ -94,7 +118,7 @@ function handleEvent(type, d) {
   } else if (type === 'depth') {
     battle.onDepth(d);
   } else if (type === 'status') {
-    hud.setFeed(d.name, !!d.live);
+    hud.setFeed(d.name, !!d.live, !!d.sim);
   }
 }
 
@@ -157,6 +181,7 @@ renderer.setAnimationLoop(() => {
     buyV, sellV,
     kills: battle.kills,
     round,
+    pots: [artillery.level(0), artillery.level(1)],
   });
 
   postfx.render(rdt);

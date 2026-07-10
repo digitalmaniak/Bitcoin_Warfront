@@ -75,7 +75,7 @@ export function createFakeFeed(emit) {
   };
   timers.push(setTimeout(tradeLoop, 80));
 
-  emit('status', { name: 'SIMULATED BATTLE', live: false });
+  emit('status', { name: 'BTC/USD', live: false, sim: true });
   return {
     name: 'fake',
     stop() { stopped = true; timers.forEach(t => { clearInterval(t); clearTimeout(t); }); },
