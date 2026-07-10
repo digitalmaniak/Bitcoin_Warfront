@@ -1,5 +1,8 @@
+import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+// Trauma camera: shake = trauma², applied as smooth rotational noise + roll,
+// with the position offset undone every frame so OrbitControls never drifts.
 export function createCameraRig(camera, renderer, battle) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 2, 0);
@@ -12,14 +15,29 @@ export function createCameraRig(camera, renderer, battle) {
   controls.autoRotateSpeed = 0.25;
   controls.addEventListener('start', () => { controls.autoRotate = false; });
 
-  function update() {
-    controls.update();
-    const s = battle.shake;
-    if (s > 0.02) {
-      camera.position.x += (Math.random() - 0.5) * s * 0.9;
-      camera.position.y += (Math.random() - 0.5) * s * 0.45;
-    }
-  }
+  let trauma = 0;
+  const off = new THREE.Vector3();
+  const noise = (f, ph, t) => Math.sin(t * f + ph) + 0.6 * Math.sin(t * f * 2.7 + ph * 3.1);
 
-  return { update, controls };
+  return {
+    addTrauma(v) { trauma = Math.min(1.2, trauma + v); },
+    update(dt, t) {
+      camera.position.sub(off); // undo last frame's shake before controls read it
+      controls.update();
+
+      trauma *= Math.exp(-dt * 2.2);
+      const tr = Math.min(1.2, battle.shake * 0.7 + trauma);
+      const s = tr * tr;
+
+      off.set(
+        noise(31, 1, t) * s * 0.5,
+        noise(37, 2, t) * s * 0.35,
+        noise(29, 5, t) * s * 0.5,
+      );
+      camera.position.add(off);
+      camera.rotateZ(noise(41, 3, t) * s * 0.02);  // roll — the cinematic part
+      camera.rotateX(noise(43, 7, t) * s * 0.012);
+    },
+    controls,
+  };
 }

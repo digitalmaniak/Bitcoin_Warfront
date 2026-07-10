@@ -15,7 +15,8 @@ export function createHud() {
       <div class="tug-bar"><div id="tug-buy"></div></div>
       <div class="tug-labels"><span id="bv">BUY 0.0</span><span id="sv">SELL 0.0</span></div>
     </div>
-    <div class="hint">drag to orbit · scroll to zoom · ?feed=fake|binance|bitstamp</div>`;
+    <button id="mute" title="toggle sound">🔊</button>
+    <div class="hint">1 whale buy · 2 whale sell · 3 cascade · drag to orbit · ?feed=fake</div>`;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -60,6 +61,13 @@ export function createHud() {
       el.whale.className = 'show';
       clearTimeout(whaleT);
       whaleT = setTimeout(() => { el.whale.className = ''; }, 3200);
+    },
+    onMute(cb) {
+      const btn = document.getElementById('mute');
+      btn.addEventListener('click', () => {
+        const muted = cb();
+        btn.textContent = muted ? '🔇' : '🔊';
+      });
     },
   };
 }

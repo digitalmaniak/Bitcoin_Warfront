@@ -57,6 +57,14 @@ Drag to orbit, scroll to zoom. Camera auto-orbits slowly until you grab it. Shak
 ## Roadmap
 
 - [x] Phase 1–3: battlefield, live feeds, market mechanics
-- [ ] Phase 4: drama pass — sound, tracer particles, kill streaks, liquidation cascades
-- [ ] Toy-soldier model skin (swap geometry in `render/armies.js`)
+- [x] Phase 4: drama pass — mech soldiers, tracers, grenades/tanks/jets escalation
+      ladder, explosions, trauma cam, bloom, synthesized audio, wall-breach
+      banners, demo hotkeys (see PHASE4.md)
+- [ ] Toy-soldier / vehicle model pack skin (swap geometry builders)
 - [ ] Multi-asset: ETH front, second theater of war
+
+## Demo hotkeys
+
+`1` whale buy (airstrike) · `2` whale sell · `3` liquidation cascade
+(carpet bomb + slow-mo). Injected trades use the same pipeline as live ones.
+Sound starts after your first click (browser rule) — mute button bottom-left.

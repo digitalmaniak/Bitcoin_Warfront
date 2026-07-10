@@ -34,8 +34,11 @@ export function createBattle() {
   const kills = [0, 0];          // kills[0] = bears slain by bulls
   const volEma = [1, 1];         // rolling aggression per side
   const skullQ = [];             // {x, z, n} drained by effects
+  const breachQ = [];            // {side:'bid'|'ask'} wall-breach events
   let shake = 0;
-  const walls = { bid: [], ask: [] }; // {x, h}
+  const walls = { bid: [], ask: [] }; // {x, h, q, lvl}
+  const prevMax = { bid: null, ask: null };
+  let breachCooldown = 0;
 
   const sideDir = (side) => (side === 0 ? -1 : 1);
 
@@ -88,11 +91,21 @@ export function createBattle() {
   }
 
   return {
-    units, walls, skullQ, CFG,
+    units, walls, skullQ, breachQ, CFG,
     get front() { return front; },
     get price() { return price; },
     get kills() { return kills; },
     get shake() { return shake; },
+    get aggression() { return volEma; },
+
+    // Delayed/area kills (grenade blasts, tank shells, missile impacts).
+    strikeAt(side, z, count) {
+      const k = killNear(1 - side, z, count);
+      kills[side] += k;
+      if (count >= 8) skullQ.push({ x: front, z, n: Math.min(4, 1 + Math.ceil(count / 12)) });
+      shake = Math.max(shake, Math.min(1.6, count / 18));
+      return k;
+    },
 
     setPrice(p) {
       if (!p || !Number.isFinite(p)) return;
@@ -150,13 +163,31 @@ export function createBattle() {
         for (const [key, q] of map) {
           const x = front + key * spacing;
           if (Math.abs(x) > CFG.fieldX - 8) continue;
-          out.push({ x, h: Math.min(16, 1.9 * Math.sqrt(q)) });
+          out.push({ x, h: Math.min(16, 1.9 * Math.sqrt(q)), q, lvl: price + key * bucket });
         }
         out.sort((a, b) => a.x - b.x);
         return out.slice(0, CFG.wallCap);
       };
       walls.bid = bucketize(bids || []);
       walls.ask = bucketize(asks || []);
+
+      // Wall-breach detection: a big wall got eaten while price crossed it.
+      for (const side of ['bid', 'ask']) {
+        const arr = walls[side];
+        let mx = null;
+        for (const w of arr) if (!mx || w.h > mx.h) mx = w;
+        const prev = prevMax[side];
+        if (prev && prev.h >= 11 && Date.now() > breachCooldown) {
+          const match = arr.find((w) => Math.abs(w.lvl - prev.lvl) <= bucket);
+          const crushed = !match || match.h < prev.h * 0.35;
+          const crossed = side === 'ask' ? price > prev.lvl : price < prev.lvl;
+          if (crushed && crossed) {
+            breachQ.push({ side });
+            breachCooldown = Date.now() + 30000;
+          }
+        }
+        prevMax[side] = mx;
+      }
     },
 
     update(dt) {
