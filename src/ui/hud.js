@@ -11,6 +11,35 @@ export function createHud() {
       <div class="pot" title="ordnance charge"><div id="pot-b"></div></div></div>
     <div class="kills" id="kills-bears"><span class="n" id="kr">0</span>BULLS SLAIN
       <div class="pot pot-right" title="ordnance charge"><div id="pot-r"></div></div></div>
+    <div class="ladder" id="ladder">
+      <div class="ladder-head" id="ladder-head"><span>ESCALATION LADDER</span><span id="ladder-arrow">▾</span></div>
+      <div id="ladder-body">
+        <div class="lrow" id="lr-infantry" style="--c:#9a9aa5">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="3" y="4" width="4" height="10" rx="2"/><rect x="10" y="2" width="4" height="10" rx="2"/><rect x="17" y="4" width="4" height="10" rx="2"/></svg>
+          <span class="ln">INFANTRY</span><span class="lt">every trade</span>
+        </div>
+        <div class="lrow" id="lr-grenade" style="--c:#2dd4bf">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><circle cx="12" cy="10" r="5"/><rect x="9" y="1" width="6" height="4" rx="1"/></svg>
+          <span class="ln">GRENADES</span><span class="lt">8× avg</span>
+        </div>
+        <div class="lrow" id="lr-tank" style="--c:#a78bfa">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="1" y="9" width="15" height="5" rx="2"/><rect x="5" y="5" width="7" height="5" rx="1"/><rect x="12" y="6" width="11" height="2"/></svg>
+          <span class="ln">TANK</span><span class="lt">20× avg</span>
+        </div>
+        <div class="lrow" id="lr-air" style="--c:#f5b043">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><polygon points="23,8 3,2 9,8 3,14"/></svg>
+          <span class="ln">AIRSTRIKE</span><span class="lt">whale</span>
+        </div>
+        <div class="lrow" id="lr-carpet" style="--c:#ef5340">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><polygon points="12,4 2,1 5,4 2,7"/><polygon points="17,8 7,5 10,8 7,11"/><polygon points="12,12 2,9 5,12 2,15"/></svg>
+          <span class="ln">SQUADRON</span><span class="lt">3× whale</span>
+        </div>
+        <div class="lrow" id="lr-pot" style="--c:#c9c9d2">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="4" y="10" width="3" height="5"/><rect x="10" y="7" width="3" height="8"/><rect x="16" y="3" width="3" height="12"/></svg>
+          <span class="ln">ARTILLERY</span><span class="lt">pooled flow</span>
+        </div>
+      </div>
+    </div>
     <div id="whale"></div>
     <div id="banner"></div>
     <div class="tug">
@@ -29,6 +58,11 @@ export function createHud() {
     potB: $('pot-b'), potR: $('pot-r'),
   };
   let bannerT = 0, whaleT = 0;
+  const flashT = {};
+
+  document.getElementById('ladder-head').addEventListener('click', () => {
+    document.getElementById('ladder').classList.toggle('collapsed');
+  });
 
   const fmtPrice = (p) => p
     ? '$' + p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -68,6 +102,14 @@ export function createHud() {
       el.whale.className = 'show';
       clearTimeout(whaleT);
       whaleT = setTimeout(() => { el.whale.className = ''; }, 3200);
+    },
+    // pulse a ladder row when its tier fires: 'grenade'|'tank'|'air'|'carpet'|'pot'
+    flashTier(tier) {
+      const row = document.getElementById(`lr-${tier}`);
+      if (!row) return;
+      row.classList.add('fire');
+      clearTimeout(flashT[tier]);
+      flashT[tier] = setTimeout(() => row.classList.remove('fire'), 850);
     },
     onMute(cb) {
       const btn = document.getElementById('mute');

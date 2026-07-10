@@ -51,14 +51,20 @@ const jets = createJets(scene, battle, (x, z, side, kills, size) => {
   rig.addTrauma(0.5);
 }, explosions);
 
-// escalation events → weapon systems
-bus.on('grenade', (d) => { for (let i = 0; i < d.count; i++) grenades.spawn(d.side); });
-bus.on('tank', (d) => tanks.deploy(d.side));
-bus.on('airstrike', (d) => { jets.strike(d.side, d.kills); audio.jet(); });
-bus.on('carpet', (d) => { jets.carpet(d.side, d.kills); audio.jet(); slowMo(); });
+// escalation events → weapon systems (+ ladder row pulses)
+bus.on('grenade', (d) => {
+  for (let i = 0; i < d.count; i++) grenades.spawn(d.side);
+  hud.flashTier('grenade');
+});
+bus.on('tank', (d) => { tanks.deploy(d.side); hud.flashTier('tank'); });
+bus.on('airstrike', (d) => { jets.strike(d.side, d.kills); audio.jet(); hud.flashTier('air'); });
+bus.on('carpet', (d) => {
+  jets.carpet(d.side, d.kills); audio.jet(); slowMo(); hud.flashTier('carpet');
+});
 
 // artillery budget tips → rotating hardware
 bus.on('ordnance', (d) => {
+  hud.flashTier('pot');
   if (d.kind === 'mortar') {
     for (let i = 0; i < 5; i++) {
       setTimeout(() => grenades.spawn(d.side, { mortar: true }), i * 260);
