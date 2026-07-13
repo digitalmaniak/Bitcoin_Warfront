@@ -112,6 +112,7 @@ hud.onMute(() => { audio.setMuted(!audio.muted); return audio.muted; });
 
 let lastPrice = 0;
 let sessionOpen = 0;
+let lastFeedName = '';
 let buyV = 0, sellV = 0;
 let round = 1;
 
@@ -121,6 +122,7 @@ const candles = createCandles((c) => {
   round = c.round + 1;
   if (Date.now() < bannerLockUntil) return; // don't stomp the return banner
   const d = c.c - c.o;
+  if (Math.abs(d) > 1500) return; // feed-switch artifact, not a real candle
   const dir = Math.abs(d) < 1 ? 'flat' : d > 0 ? 'bulls' : 'bears';
   const title =
     dir === 'flat' ? 'STALEMATE'
@@ -158,6 +160,12 @@ function handleEvent(type, d) {
   } else if (type === 'depth') {
     battle.onDepth(d);
   } else if (type === 'status') {
+    // source changed → re-baseline the session % (prices differ per source,
+    // and live↔simulated jumps would otherwise show nonsense like +87%)
+    if (!d.name.startsWith('CONNECTING') && d.name !== lastFeedName) {
+      if (lastFeedName) sessionOpen = 0;
+      lastFeedName = d.name;
+    }
     hud.setFeed(d.name, !!d.live, !!d.sim);
   }
 }

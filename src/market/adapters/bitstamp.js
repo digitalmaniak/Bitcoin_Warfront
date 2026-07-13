@@ -24,6 +24,12 @@ export function createBitstampFeed(emit, onFail) {
   ws.onmessage = (ev) => {
     if (stopped) return;
     let m; try { m = JSON.parse(ev.data); } catch { return; }
+    if (m.event === 'bts:request_reconnect') {
+      // Bitstamp asks clients to reconnect periodically — treat as a drop
+      // so the feed manager reconnects instead of falling back to fake.
+      fail(opened ? 'dropped' : 'closed');
+      return;
+    }
     if (m.event === 'trade' && m.data) {
       if (!opened) { opened = true; clearTimeout(to); emit('status', { name: 'BITSTAMP · LIVE', live: true }); }
       const d = m.data;
