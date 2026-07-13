@@ -3,7 +3,7 @@ import { startFeed } from './market/feed.js';
 import { createCandles } from './market/candles.js';
 import { createNormalizer } from './market/normalize.js';
 import { createBattle } from './sim/battle.js';
-import { createArsenal } from './sim/arsenal.js';
+import { createArsenal, TIERS } from './sim/arsenal.js';
 import { createArtillery } from './sim/artillery.js';
 import { createBus } from './core/bus.js';
 import { createScene } from './render/scene.js';
@@ -46,27 +46,49 @@ let timeScale = 1, slowmoT = 0;
 const slowMo = () => { timeScale = 0.3; slowmoT = 0.55; };
 
 const jets = createJets(scene, battle, (x, z, side, kills, size) => {
-  explosions.boom(x, z, size);
+  if (size >= 4) { // MOAB impact
+    explosions.moabBoom(x, z);
+    hud.flashScreen();
+    rig.addTrauma(1.0);
+    timeScale = 0.22;
+    slowmoT = 0.9;
+  } else {
+    explosions.boom(x, z, size);
+    rig.addTrauma(0.5);
+  }
   battle.strikeAt(side, z, kills);
   tanks.checkStrike(x, z, side);
   audio.explosion(size);
-  rig.addTrauma(0.5);
 }, explosions);
+
+// quiet-period director: never let the front go silent for 45s
+let lastHeavy = performance.now();
+const heavyNow = () => { lastHeavy = performance.now(); };
 
 // escalation events → weapon systems (+ ladder row pulses)
 bus.on('grenade', (d) => {
   for (let i = 0; i < d.count; i++) grenades.spawn(d.side);
   hud.flashTier('grenade');
 });
-bus.on('tank', (d) => { tanks.deploy(d.side); hud.flashTier('tank'); });
-bus.on('airstrike', (d) => { jets.strike(d.side, d.kills); audio.jet(); hud.flashTier('air'); });
+bus.on('tank', (d) => { tanks.deploy(d.side); hud.flashTier('tank'); heavyNow(); });
+bus.on('airstrike', (d) => {
+  jets.strike(d.side, d.kills); audio.jet(); hud.flashTier('air'); heavyNow();
+});
 bus.on('carpet', (d) => {
-  jets.carpet(d.side, d.kills); audio.jet(); slowMo(); hud.flashTier('carpet');
+  jets.carpet(d.side, d.kills); audio.jet(); slowMo(); hud.flashTier('carpet'); heavyNow();
+});
+bus.on('moab', (d) => {
+  jets.moab(d.side, d.kills);
+  audio.jet();
+  hud.whale('💣 MOAB INBOUND');
+  hud.flashTier('moab');
+  heavyNow();
 });
 
 // artillery budget tips → rotating hardware
 bus.on('ordnance', (d) => {
   hud.flashTier('pot');
+  heavyNow();
   if (d.kind === 'mortar') {
     for (let i = 0; i < 5; i++) {
       setTimeout(() => grenades.spawn(d.side, { mortar: true }), i * 260);
@@ -125,7 +147,10 @@ function handleEvent(type, d) {
       if (res.whale) away.whales++;
     }
     if (d.side === 'buy') buyV += d.qty; else sellV += d.qty;
-    if (res.carpet) {
+    hud.tapeTrade(d.side, d.qty, d.price, res.r >= TIERS.GRENADE);
+    if (res.moab) {
+      // MOAB alert handled by the bus handler
+    } else if (res.carpet) {
       hud.whale(`🚨 ${d.qty.toFixed(1)} BTC ${d.side.toUpperCase()} — SQUADRON INBOUND`);
     } else if (res.whale) {
       hud.whale(`🛩 ${d.qty.toFixed(1)} BTC ${d.side.toUpperCase()} — AIRSTRIKE INBOUND`);
@@ -171,15 +196,16 @@ const inject = (side, qty) => handleEvent('trade', {
   side, qty, price: lastPrice || battle.price || 117000, ts: Date.now(),
 });
 window.addEventListener('keydown', (e) => {
-  const whaleQty = Math.max(6, norm.ref * 60);
+  const whaleQty = norm.whaleQty;
   if (e.key === '1') inject('buy', whaleQty * 1.3);
   if (e.key === '2') inject('sell', whaleQty * 1.3);
   if (e.key === '3') {
     for (let i = 0; i < 8; i++) {
-      setTimeout(() => inject('sell', norm.ref * (18 + Math.random() * 30)), i * 140);
+      setTimeout(() => inject('sell', norm.ref * (14 + Math.random() * 24)), i * 140);
     }
-    setTimeout(() => inject('sell', whaleQty * 3.4), 1200); // the cascade climax
+    setTimeout(() => inject('sell', whaleQty * 3), 1200); // the cascade climax
   }
+  if (e.key === '4') inject(Math.random() < 0.5 ? 'buy' : 'sell', whaleQty * 6.5); // MOAB
 });
 
 const clock = new THREE.Clock();
@@ -198,6 +224,25 @@ renderer.setAnimationLoop(() => {
   grenades.update(dt);
   tanks.update(dt);
   jets.update(dt);
+
+  // director: 45s without heavy hardware → spend whatever the pot holds
+  if (battle.base && performance.now() - lastHeavy > 45000) {
+    heavyNow();
+    const side = artillery.level(0) >= artillery.level(1) ? 0 : 1;
+    const mag = artillery.drain(side);
+    if (mag < 0.05) {
+      jets.flyover(side, (Math.random() - 0.5) * 20); // nothing brewing: recon pass
+    } else {
+      const roll = Math.random();
+      if (roll < 0.07) bus.emit('moab', { side, kills: Math.ceil(12 + 30 * mag) });
+      else if (roll < 0.35) bus.emit('airstrike', { side, kills: Math.ceil(8 + 22 * mag) });
+      else {
+        bus.emit('ordnance', {
+          side, kind: ['mortar', 'tankSortie', 'strafe'][Math.floor(Math.random() * 3)],
+        });
+      }
+    }
+  }
 
   // first price arrived → draw the ruler; rebases → shift world + renumber
   if (!ruler.built && battle.base) ruler.rebuild(battle.base);

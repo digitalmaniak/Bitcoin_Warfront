@@ -74,6 +74,7 @@ export function createExplosions(scene) {
 
   const take = (pool) =>
     pool.find((e) => e.life === Infinity) || pool.reduce((a, b) => (a.life > b.life ? b : a));
+  const delayQ = []; // {t, fn} — staged multi-part effects (MOAB column)
 
   function puff(x, y, z, scale = 1) {
     const s = take(smoke);
@@ -113,7 +114,30 @@ export function createExplosions(scene) {
     sc.m.visible = true;
   }
 
+  // The apex blast: huge boom, double shockwave, rising mushroom column + cap
+  function moabBoom(x, z) {
+    boom(x, z, 3.2);
+    delayQ.push({ t: 0.18, fn: () => {
+      const r = take(rings);
+      r.life = 0; r.size = 5.5;
+      r.m.position.x = x; r.m.position.z = z; r.m.visible = true;
+    } });
+    for (let i = 0; i < 12; i++) {
+      delayQ.push({ t: 0.1 + i * 0.12, fn: () => puff(x, 2 + i * 1.9, z, 3.2) });
+    }
+    for (let i = 0; i < 7; i++) {
+      delayQ.push({ t: 1.5 + i * 0.08, fn: () => puff(
+        x + (Math.random() - 0.5) * 10, 22 + Math.random() * 3,
+        z + (Math.random() - 0.5) * 10, 4.5,
+      ) });
+    }
+  }
+
   function update(dt) {
+    for (let i = delayQ.length - 1; i >= 0; i--) {
+      delayQ[i].t -= dt;
+      if (delayQ[i].t <= 0) { delayQ[i].fn(); delayQ.splice(i, 1); }
+    }
     for (const f of fireballs) {
       if (f.life === Infinity) continue;
       f.life += dt;
@@ -179,5 +203,5 @@ export function createExplosions(scene) {
     for (const sc of scorch) if (sc.life !== Infinity) sc.m.position.x += dx;
   }
 
-  return { boom, puff, update, shiftX };
+  return { boom, puff, moabBoom, update, shiftX };
 }

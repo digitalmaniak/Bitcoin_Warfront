@@ -64,6 +64,7 @@ export function createJets(scene, battle, onImpact, explosions) {
     j.y = o.y || 24;
     j.speed = o.speed || 95;
     j.small = !!o.small;
+    j.moab = !!o.moab;
     j.released = !!o.dry; // dry pass: never releases ordnance
     j.bombs = o.bombs || 0;
     j.bombT = 0;
@@ -80,11 +81,25 @@ export function createJets(scene, battle, onImpact, explosions) {
     const ix = battle.front + vdir * rnd(2, 8);
     const iz = j.z + rnd(-2, 2);
     const T = 0.55;
-    ms.active = true; ms.ballistic = false;
+    ms.active = true; ms.ballistic = false; ms.moabSlow = false;
     ms.side = j.side; ms.kills = j.kills; ms.size = 2.1;
     ms.x = j.x; ms.y = j.y; ms.z = j.z;
     ms.vx = (ix - j.x) / T; ms.vy = (0 - j.y) / T; ms.vz = (iz - j.z) / T;
     ms.trailT = 0;
+    ms.m.scale.setScalar(1);
+    ms.m.visible = true;
+  }
+
+  function dropMoab(j) {
+    const ms = missiles.find((x) => !x.active);
+    if (!ms) return;
+    const vdir = j.side === 0 ? 1 : -1;
+    ms.active = true; ms.ballistic = true; ms.moabSlow = true;
+    ms.side = j.side; ms.kills = j.kills; ms.size = 4.6;
+    ms.x = j.x; ms.y = j.y - 1.5; ms.z = j.z;
+    ms.vx = vdir * 22; ms.vy = -2; ms.vz = 0;
+    ms.trailT = 0;
+    ms.m.scale.setScalar(2.5);
     ms.m.visible = true;
   }
 
@@ -92,10 +107,11 @@ export function createJets(scene, battle, onImpact, explosions) {
     const ms = missiles.find((x) => !x.active);
     if (!ms) return;
     const vdir = j.side === 0 ? 1 : -1;
-    ms.active = true; ms.ballistic = true;
+    ms.active = true; ms.ballistic = true; ms.moabSlow = false;
     ms.side = j.side;
     ms.kills = j.small ? 2 : Math.max(3, Math.ceil(j.kills / 2));
     ms.size = j.small ? 1.2 : 2.3;
+    ms.m.scale.setScalar(1);
     ms.x = j.x; ms.y = j.y - 1; ms.z = j.z;
     ms.vx = vdir * 40; ms.vy = -6; ms.vz = 0;
     ms.trailT = 0;
@@ -112,6 +128,8 @@ export function createJets(scene, battle, onImpact, explosions) {
     flyover(side, zoff = 0) { spawnJet(side, 0, { dry: true, zoff, y: 17, speed: 115 }); },
     // strafing run — artillery-budget spender, 3 small bombs
     strafe(side) { spawnJet(side, 2, { bombs: 3, y: 15, small: true, speed: 105 }); },
+    // the apex event: high-altitude bomber, one massive slow bomb
+    moab(side, kills) { spawnJet(side, kills, { moab: true, y: 32, speed: 78 }); },
     carpet(side, kills) {
       for (let k = 0; k < 3; k++) {
         queue.push({
@@ -140,7 +158,10 @@ export function createJets(scene, battle, onImpact, explosions) {
             j.bombT -= dt;
             if (j.bombT <= 0) { j.bombT = 0.14; j.bombs--; dropBomb(j); }
           }
-        } else if (!j.released && vdir * (j.x - (f - vdir * 25)) >= 0) {
+        } else if (j.moab && !j.released && Math.abs(j.x - f) < 8) {
+          j.released = true;
+          dropMoab(j);
+        } else if (!j.moab && !j.released && vdir * (j.x - (f - vdir * 25)) >= 0) {
           j.released = true;
           fireMissile(j);
         }
@@ -148,7 +169,7 @@ export function createJets(scene, battle, onImpact, explosions) {
       }
       for (const ms of missiles) {
         if (!ms.active) continue;
-        if (ms.ballistic) ms.vy -= 55 * dt;
+        if (ms.ballistic) ms.vy -= (ms.moabSlow ? 26 : 55) * dt;
         ms.x += ms.vx * dt; ms.y += ms.vy * dt; ms.z += ms.vz * dt;
         ms.m.position.set(ms.x, ms.y, ms.z);
         ms.m.lookAt(ms.x + ms.vx, ms.y + ms.vy, ms.z + ms.vz);

@@ -2,7 +2,7 @@
 // pot. When the pot tips (~30× rolling average trade size), it's spent on
 // rotating hardware — mortar barrage → tank sortie → strafing run.
 // Still exactly proportional to real flow: small trades pool into big booms.
-export const POT_MULT = 30;
+export const POT_MULT = 18;
 export const KINDS = ['mortar', 'tankSortie', 'strafe'];
 
 export function createArtillery(norm, bus) {
@@ -21,5 +21,11 @@ export function createArtillery(norm, bus) {
     },
     // 0..1 charge level for the HUD meters
     level(side) { return Math.min(1, pot[side] / cap()); },
+    // director spends whatever's brewing early; returns magnitude 0..1
+    drain(side) {
+      const mag = Math.min(1, pot[side] / cap());
+      pot[side] = 0;
+      return mag;
+    },
   };
 }

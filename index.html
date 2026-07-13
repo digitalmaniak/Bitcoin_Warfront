@@ -61,18 +61,38 @@
     #banner .bsub{display:block;font-size:13px;letter-spacing:3px;color:#9a9aa5;
       margin-top:8px;font-weight:400;}
 
-    #whale{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);font-size:15px;
+    #whale{position:absolute;bottom:268px;left:50%;transform:translateX(-50%);font-size:15px;
       letter-spacing:2px;color:#f1c40f;opacity:0;transition:opacity .3s;
       text-shadow:0 0 14px rgba(241,196,15,.5);}
     #whale.show{opacity:1;}
 
     .hint{position:absolute;bottom:8px;right:12px;font-size:10px;color:#3c3c46;letter-spacing:1px;}
+
+    #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40;}
+    .tape{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:380px;
+      pointer-events:auto;display:flex;flex-direction:column;}
+    .tape-head{font-size:10px;letter-spacing:2px;color:#63636d;display:flex;
+      justify-content:space-between;cursor:pointer;padding:3px 4px;user-select:none;order:2;}
+    .tape-head:hover{color:#9a9aa5;}
+    #tape-arrow{transition:transform .25s;transform:rotate(180deg);} /* expanded: up */
+    .tape.collapsed #tape-arrow{transform:rotate(0deg);}             /* collapsed: down */
+    #tape-body{order:1;max-height:170px;overflow:hidden;opacity:1;
+      display:flex;flex-direction:column;justify-content:flex-end;
+      transition:max-height .6s ease,opacity .5s ease;
+      -webkit-mask-image:linear-gradient(to bottom,transparent,black 35%);
+      mask-image:linear-gradient(to bottom,transparent,black 35%);}
+    .tape.collapsed #tape-body{max-height:0;opacity:0;}
+    .trow{display:flex;justify-content:space-between;font-size:11px;line-height:1.45;
+      padding:0 6px;letter-spacing:1px;}
+    .trow.buy{color:#2ecc71;}
+    .trow.sell{color:#e74c3c;}
+    .trow.big{font-weight:700;background:rgba(255,255,255,.05);border-radius:3px;}
     #mute{position:absolute;bottom:22px;left:18px;pointer-events:auto;cursor:pointer;
       background:rgba(20,20,28,.6);border:1px solid #333;border-radius:6px;color:#ccc;
       font-size:16px;padding:5px 9px;}
     #mute:hover{border-color:#555;}
 
-    .ladder{position:absolute;top:116px;left:50%;transform:translateX(-50%);width:252px;pointer-events:auto;}
+    .ladder{position:absolute;top:102px;left:50%;transform:translateX(-50%);width:252px;pointer-events:auto;}
     .ladder-head{font-size:11px;letter-spacing:2px;color:#9a9aa5;cursor:pointer;
       padding:4px 2px;display:flex;justify-content:space-between;user-select:none;}
     .ladder-head:hover{color:#c9c9d2;}
