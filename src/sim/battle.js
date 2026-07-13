@@ -18,7 +18,8 @@ export const CFG = {
 };
 
 const rnd = (a, b) => a + Math.random() * (b - a);
-const STATE = { MARCH: 0, FIGHT: 1, DEAD: 2 };
+const STATE = { MARCH: 0, FIGHT: 1, DEAD: 2, DOOMED: 3 };
+const GRAV = 26;
 
 export function createBattle() {
   const units = [];
@@ -27,7 +28,9 @@ export function createBattle() {
     units.push({
       i, alive: false, side: 0, state: STATE.MARCH,
       x: 0, z: 0, ox: 6, tz: 0, speed: 5, s: 1,
-      charge: false, deathT: 0,
+      charge: false, deathT: 0, dur: 1.1,
+      // physics: height, vertical velocity, knockback, tumble, stagger, doom
+      y: 0, vy: 0, kx: 0, kz: 0, spin: 0, stun: 0, doomT: 0,
     });
     freeStack.push(i);
   }
@@ -37,6 +40,7 @@ export function createBattle() {
   const kills = [0, 0];          // kills[0] = bears slain by bulls
   const volEma = [1, 1];         // rolling aggression per side
   const skullQ = [];             // {x, z, n} drained by effects
+  const shotQ = [];              // {side, x, z, t} kill-tracers for the renderer
   const breachQ = [];            // {side:'bid'|'ask'} wall-breach events
   let shake = 0;
   const walls = { bid: [], ask: [] }; // {x, h, q, lvl}
@@ -50,7 +54,8 @@ export function createBattle() {
     if (i === undefined) return null;
     const u = units[i];
     u.alive = true; u.side = side; u.state = STATE.MARCH;
-    u.charge = false; u.deathT = 0; u.s = 1;
+    u.charge = false; u.deathT = 0; u.s = 1; u.dur = 1.1;
+    u.y = 0; u.vy = 0; u.kx = 0; u.kz = 0; u.spin = 0; u.stun = 0; u.doomT = 0;
     return u;
   }
 
@@ -64,20 +69,35 @@ export function createBattle() {
     u.speed = rnd(4, 7);
   }
 
+  // Mark victims DOOMED: they die a beat later, and shotQ lets the renderer
+  // fire a visible tracer timed to arrive as they drop. Every falling soldier
+  // corresponds to a real counted kill.
   function killNear(side, z, count) {
     let k = 0;
     // pass 1: tight radius at the frontline; pass 2: widen
     for (const [dx, dz] of [[9, 12], [20, 26]]) {
       for (let i = 0; i < units.length && k < count; i++) {
         const u = units[i];
-        if (!u.alive || u.side !== side || u.state === STATE.DEAD || u.s > 2) continue;
+        if (!u.alive || u.side !== side || u.s > 2) continue;
+        if (u.state !== STATE.MARCH && u.state !== STATE.FIGHT) continue;
         if (Math.abs(u.x - front) < dx && Math.abs(u.z - z) < dz) {
-          u.state = STATE.DEAD; u.deathT = 0; k++;
+          u.state = STATE.DOOMED;
+          u.doomT = 0.1 + Math.random() * 0.45;
+          if (shotQ.length < 140) shotQ.push({ side: 1 - side, x: u.x, z: u.z, t: u.doomT });
+          k++;
         }
       }
       if (k >= count) break;
     }
     return k;
+  }
+
+  function dieShot(u) {
+    u.state = STATE.DEAD;
+    u.deathT = 0; u.dur = 1.0;
+    u.kx = sideDir(u.side) * rnd(1, 3); // knocked back toward own side
+    u.kz = rnd(-1, 1);
+    u.vy = 0; u.y = 0; u.spin = 0;
   }
 
   function resolveCharge(u) {
@@ -94,7 +114,7 @@ export function createBattle() {
   }
 
   return {
-    units, walls, skullQ, breachQ, rebaseQ, CFG,
+    units, walls, skullQ, breachQ, rebaseQ, shotQ, CFG,
     get front() { return front; },
     get base() { return base; },
     get price() { return price; },
@@ -102,13 +122,72 @@ export function createBattle() {
     get shake() { return shake; },
     get aggression() { return volEma; },
 
-    // Delayed/area kills (grenade blasts, tank shells, missile impacts).
+    // Delayed/area kills at the frontline (no known impact point).
     strikeAt(side, z, count) {
       const k = killNear(1 - side, z, count);
       kills[side] += k;
       if (count >= 8) skullQ.push({ x: front, z, n: Math.min(4, 1 + Math.ceil(count / 12)) });
       shake = Math.max(shake, Math.min(1.6, count / 18));
       return k;
+    },
+
+    // Blast with a real impact point: victims inside the radius are LAUNCHED
+    // ballistically away (bigger power → higher and farther), survivors
+    // nearby stagger from the shockwave. Kill counts stay flow-honest —
+    // any deaths the blast couldn't find locally fall at the front instead.
+    blastAt(side, bx, bz, count, power) {
+      const r = 4 + power * 4.5;
+      const r2 = r * r;
+      const shoveR = r * 1.7;
+      const shoveR2 = shoveR * shoveR;
+      let killed = 0;
+      for (const u of units) {
+        if (!u.alive || u.state === STATE.DEAD) continue;
+        const dx = u.x - bx, dz = u.z - bz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > shoveR2) continue;
+        const d = Math.sqrt(d2) || 0.5;
+        if (d2 < r2 && killed < count && u.side !== side && u.s <= 2
+            && u.state !== STATE.DOOMED) {
+          killed++;
+          const fall = 1 - (d / r) * 0.6; // closer to center → thrown harder
+          const sp = Math.min(34, (5 + power * 5) * fall * rnd(0.7, 1.3));
+          u.state = STATE.DEAD;
+          u.deathT = 0;
+          u.dur = Math.min(2.2, 1.3 + power * 0.15);
+          u.kx = (dx / d) * sp;
+          u.kz = (dz / d) * sp;
+          u.vy = Math.min(16, (3.5 + power * 2.8) * fall);
+          u.y = 0.01;
+          u.spin = rnd(-8, 8);
+        } else { // shockwave shove (both sides, non-lethal)
+          const sp = (3 + power * 2.5) * (1 - d / shoveR);
+          u.kx += (dx / d) * sp;
+          u.kz += (dz / d) * sp;
+          u.stun = Math.max(u.stun, 0.35);
+        }
+      }
+      kills[side] += killed;
+      if (killed < count) kills[side] += killNear(1 - side, bz, count - killed);
+      if (count >= 8) skullQ.push({ x: bx, z: bz, n: Math.min(4, 1 + Math.ceil(count / 12)) });
+      shake = Math.max(shake, Math.min(1.6, count / 18 + power * 0.15));
+      return killed;
+    },
+
+    // Continuous push field (tanks plowing through the ranks).
+    displace(bx, bz, r, dt) {
+      const r2 = r * r;
+      for (const u of units) {
+        if (!u.alive || u.state === STATE.DEAD || u.s > 2) continue;
+        const dx = u.x - bx, dz = u.z - bz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > r2) continue;
+        const d = Math.sqrt(d2) || 0.4;
+        const f = 46 * dt * (1 - d / r);
+        u.kx += (dx / d) * f;
+        u.kz += (dz / d) * f;
+        u.stun = Math.max(u.stun, 0.2);
+      }
     },
 
     setPrice(p) {
@@ -223,12 +302,39 @@ export function createBattle() {
         if (!u.alive) continue;
 
         if (u.state === STATE.DEAD) {
-          u.deathT += dt / 1.1;
+          if (u.y > 0 || u.vy > 0) { // airborne: ballistic arc
+            u.vy -= GRAV * dt;
+            u.y += u.vy * dt;
+            u.x += u.kx * dt;
+            u.z += u.kz * dt;
+            if (u.y <= 0) { u.y = 0; u.vy = 0; u.kx *= 0.25; u.kz *= 0.25; }
+          } else if (u.kx || u.kz) { // sliding to rest
+            u.x += u.kx * dt;
+            u.z += u.kz * dt;
+            const dk = Math.exp(-dt * 6);
+            u.kx *= dk; u.kz *= dk;
+          }
+          u.deathT += dt / u.dur;
           if (u.deathT >= 1) { u.alive = false; freeStack.push(i); }
           else alive[u.side]++;
           continue;
         }
         alive[u.side]++;
+
+        if (u.state === STATE.DOOMED) { // hit registered, falls when shot lands
+          u.doomT -= dt;
+          if (u.doomT <= 0) dieShot(u);
+          continue;
+        }
+
+        if (u.stun > 0) { // shockwave stagger: shoved, can't act
+          u.stun -= dt;
+          u.x += u.kx * dt;
+          u.z += u.kz * dt;
+          const dk = Math.exp(-dt * 5);
+          u.kx *= dk; u.kz *= dk;
+          continue;
+        }
 
         const dir = sideDir(u.side);
         const tx = u.charge ? front - dir * 1.5 : front + dir * u.ox;

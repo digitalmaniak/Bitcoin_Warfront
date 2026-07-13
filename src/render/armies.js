@@ -48,10 +48,16 @@ export function createArmies(scene, battle) {
       const yaw = u.side === 0 ? 0 : Math.PI;
       dummy.position.set(u.x, 0, u.z);
 
-      if (u.state === 2) { // dying: topple, then sink
+      if (u.state === 2) { // dying
         const k = Math.min(1, u.deathT);
-        dummy.rotation.set(0, yaw, (u.side ? 1 : -1) * Math.min(1, k * 2.2) * (Math.PI / 2));
-        dummy.position.y = -1.7 * Math.max(0, (k - 0.45) / 0.55);
+        if (u.y > 0.02) { // blast-launched: airborne tumble
+          dummy.position.y = u.y;
+          dummy.rotation.set(u.spin * k * 3, yaw, u.spin * k * 3.7);
+        } else { // grounded: topple flat, then sink away
+          const dir = u.spin ? Math.sign(u.spin) : (u.side ? 1 : -1);
+          dummy.rotation.set(0, yaw, dir * Math.min(1, k * 2.2) * (Math.PI / 2));
+          dummy.position.y = -1.7 * Math.max(0, (k - 0.55) / 0.45);
+        }
       } else if (u.state === 0) { // marching: walk wobble + bob
         const ph = t * 10 + u.i * 1.7;
         dummy.rotation.set(0, yaw, Math.sin(ph) * 0.12);

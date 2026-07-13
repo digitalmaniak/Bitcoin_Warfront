@@ -56,7 +56,7 @@ const jets = createJets(scene, battle, (x, z, side, kills, size) => {
     explosions.boom(x, z, size);
     rig.addTrauma(0.5);
   }
-  battle.strikeAt(side, z, kills);
+  battle.blastAt(side, x, z, kills, size); // victims fly from the impact point
   tanks.checkStrike(x, z, side);
   audio.explosion(size);
 }, explosions, (ms) => rig.bombCam(ms));

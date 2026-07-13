@@ -39,7 +39,7 @@ export function createGrenades(scene, battle, explosions, onBoom) {
         if (k >= 1) {
           g.live = false; g.m.visible = false;
           explosions.boom(g.x1, g.z1, 0.7);
-          battle.strikeAt(g.side, g.z1, 4);
+          battle.blastAt(g.side, g.x1, g.z1, 4, 0.9); // launch victims from the blast point
           if (onBoom) onBoom(0.7);
           continue;
         }

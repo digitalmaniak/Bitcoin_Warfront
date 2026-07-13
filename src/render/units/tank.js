@@ -85,9 +85,10 @@ export function createTanks(scene, battle, explosions, onFire) {
           if (t.fireT <= 0) {
             t.fireT = 2.4 + rnd(0, 1.4);
             t.recoil = 0.55;
+            const ex = f - dir * rnd(3, 10);
             const ez = t.z + rnd(-7, 7);
-            explosions.boom(f - dir * rnd(3, 10), ez, 1);
-            battle.strikeAt(t.side, ez, 3);
+            explosions.boom(ex, ez, 1);
+            battle.blastAt(t.side, ex, ez, 3, 1); // shell blast throws victims
             if (onFire) onFire();
           }
           if (t.life <= 0) t.state = 'out';
@@ -97,6 +98,7 @@ export function createTanks(scene, battle, explosions, onFire) {
         }
         t.recoil *= Math.exp(-dt * 6);
         t.m.position.set(t.x + dir * t.recoil * 0.6, 0, t.z);
+        battle.displace(t.x, t.z, 4.6, dt); // plow infantry aside, don't ghost through
       }
     },
   };
