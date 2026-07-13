@@ -21,7 +21,7 @@ function buildJetGeo() {
 // Whale tier: jet flyby releases a guided missile at the enemy edge.
 // Carpet tier: 3-jet squadron drops ballistic bombs along the line.
 // onImpact(x, z, side, kills, size) — main wires boom/kills/audio/tanks.
-export function createJets(scene, battle, onImpact, explosions) {
+export function createJets(scene, battle, onImpact, explosions, onMoabDrop) {
   const geo = buildJetGeo();
   const mats = [
     new THREE.MeshStandardMaterial({ color: 0x35d07a, emissive: 0x0b3d22, roughness: 0.5 }),
@@ -101,6 +101,7 @@ export function createJets(scene, battle, onImpact, explosions) {
     ms.trailT = 0;
     ms.m.scale.setScalar(2.5);
     ms.m.visible = true;
+    if (onMoabDrop) onMoabDrop(ms); // bomb cam rides this reference
   }
 
   function dropBomb(j) {

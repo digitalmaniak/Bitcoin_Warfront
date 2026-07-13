@@ -13,11 +13,26 @@ export function createCameraRig(camera, renderer, battle) {
   controls.maxDistance = 180;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.25;
-  controls.addEventListener('start', () => { controls.autoRotate = false; });
+  // user grabs the camera → stop orbiting; resume after 5 idle minutes
+  let idleTimer = 0;
+  controls.addEventListener('start', () => {
+    controls.autoRotate = false;
+    clearTimeout(idleTimer);
+  });
+  controls.addEventListener('end', () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { controls.autoRotate = true; }, 5 * 60 * 1000);
+  });
 
   let trauma = 0;
   const off = new THREE.Vector3();
   const noise = (f, ph, t) => Math.sin(t * f + ph) + 0.6 * Math.sin(t * f * 2.7 + ph * 3.1);
+
+  // MOAB bomb cam: ride the bomb down, restore the user's view on impact
+  let bombRef = null;
+  const savedPos = new THREE.Vector3();
+  const savedTgt = new THREE.Vector3();
+  const vTmp = new THREE.Vector3();
 
   return {
     addTrauma(v) { trauma = Math.min(1.2, trauma + v); },
@@ -25,8 +40,43 @@ export function createCameraRig(camera, renderer, battle) {
     shiftX(dx) {
       camera.position.x += dx;
       controls.target.x += dx;
+      if (bombRef) { savedPos.x += dx; savedTgt.x += dx; }
+    },
+    bombCam(ms) {
+      if (!bombRef) {
+        camera.position.sub(off);
+        off.set(0, 0, 0);
+        savedPos.copy(camera.position);
+        savedTgt.copy(controls.target);
+        controls.enabled = false;
+      }
+      bombRef = ms;
     },
     update(dt, t) {
+      if (bombRef) {
+        if (!bombRef.active) { // impact — cut back under cover of the flash
+          camera.position.copy(savedPos);
+          controls.target.copy(savedTgt);
+          controls.enabled = true;
+          bombRef = null;
+        } else { // chase cam: just behind the bomb, looking at the field below
+          vTmp.set(bombRef.vx, bombRef.vy, bombRef.vz);
+          const sp = vTmp.length() || 1;
+          vTmp.divideScalar(sp);
+          camera.position.set(
+            bombRef.x - vTmp.x * 9,
+            bombRef.y - vTmp.y * 9 + 3.5,
+            bombRef.z - vTmp.z * 9 + 5,
+          );
+          camera.lookAt(
+            bombRef.x + vTmp.x * 12,
+            bombRef.y + vTmp.y * 12,
+            bombRef.z + vTmp.z * 12,
+          );
+          return; // no controls/follow/shake while riding the bomb
+        }
+      }
+
       camera.position.sub(off); // undo last frame's shake before controls read it
 
       // lazy follow: ease the whole rig toward the front (~2s), preserving

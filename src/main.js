@@ -59,7 +59,7 @@ const jets = createJets(scene, battle, (x, z, side, kills, size) => {
   battle.strikeAt(side, z, kills);
   tanks.checkStrike(x, z, side);
   audio.explosion(size);
-}, explosions);
+}, explosions, (ms) => rig.bombCam(ms));
 
 // quiet-period director: never let the front go silent for 45s
 let lastHeavy = performance.now();
@@ -191,21 +191,21 @@ document.addEventListener('visibilitychange', () => {
   }, 450); // let the resume burst start first, then explain it
 });
 
-// Demo hotkeys — synthetic trades through the exact same pipeline.
-const inject = (side, qty) => handleEvent('trade', {
-  side, qty, price: lastPrice || battle.price || 117000, ts: Date.now(),
-});
+// Demo hotkeys 1–6: fire each ladder tier directly (bypasses the trade
+// pipeline — injected trades inflate the rolling average and demote
+// themselves). Keys are shown on the escalation ladder rows.
 window.addEventListener('keydown', (e) => {
-  const whaleQty = norm.whaleQty;
-  if (e.key === '1') inject('buy', whaleQty * 1.3);
-  if (e.key === '2') inject('sell', whaleQty * 1.3);
-  if (e.key === '3') {
-    for (let i = 0; i < 8; i++) {
-      setTimeout(() => inject('sell', norm.ref * (14 + Math.random() * 24)), i * 140);
-    }
-    setTimeout(() => inject('sell', whaleQty * 3), 1200); // the cascade climax
+  const side = Math.random() < 0.5 ? 0 : 1;
+  if (e.key === '1') bus.emit('grenade', { side, count: 2 });
+  if (e.key === '2') bus.emit('tank', { side });
+  if (e.key === '3') bus.emit('airstrike', { side, kills: 30 });
+  if (e.key === '4') bus.emit('carpet', { side, kills: 60 });
+  if (e.key === '5') bus.emit('moab', { side, kills: 80 });
+  if (e.key === '6') {
+    bus.emit('ordnance', {
+      side, kind: ['mortar', 'tankSortie', 'strafe'][Math.floor(Math.random() * 3)],
+    });
   }
-  if (e.key === '4') inject(Math.random() < 0.5 ? 'buy' : 'sell', whaleQty * 6.5); // MOAB
 });
 
 const clock = new THREE.Clock();

@@ -18,13 +18,25 @@ export function createPostFX(renderer, scene, camera) {
     composer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  let fps = 60, warmup = 4, tier = 0;
+  // Degrade only on SUSTAINED low fps (3s continuous), after a 10s warmup —
+  // startup jank (shader compile, army spawn, intro jets) must not dim the
+  // war. Pixel ratio goes first; bloom (the glow) is sacrificed last.
+  let fps = 60, warmup = 10, tier = 0, lowT = 0;
   return {
     render(dt) {
       if (dt > 0.0001) fps += (1 / dt - fps) * 0.04;
-      if (warmup > 0) warmup -= dt;
-      else if (tier === 0 && fps < 42) { tier = 1; bloom.enabled = false; }
-      else if (tier === 1 && fps < 30) { tier = 2; renderer.setPixelRatio(1); }
+      if (warmup > 0) {
+        warmup -= dt;
+      } else {
+        const threshold = tier === 0 ? 40 : 26;
+        lowT = fps < threshold ? lowT + dt : 0;
+        if (lowT > 3) {
+          lowT = 0;
+          tier++;
+          if (tier === 1) renderer.setPixelRatio(1);
+          else if (tier === 2) bloom.enabled = false;
+        }
+      }
       composer.render();
     },
   };
