@@ -291,6 +291,15 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// browser tab title = who's winning + live price. setInterval (not the
+// render loop) so it keeps ticking while the tab is backgrounded — that's
+// when a live title matters most (browsers throttle it to ~1/min hidden).
+setInterval(() => {
+  if (!lastPrice || !sessionOpen) return;
+  const winner = lastPrice >= sessionOpen ? 'Bulls' : 'Bears';
+  document.title = `${winner} ${(lastPrice / 1000).toFixed(1)}k`;
+}, 5000);
+
 const clock = new THREE.Clock();
 let simT = 0;
 renderer.setAnimationLoop(() => {
