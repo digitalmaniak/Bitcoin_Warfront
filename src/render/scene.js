@@ -61,18 +61,30 @@ export function createScene() {
   const bullTint = mkTint(0x1f9d55);
   const bearTint = mkTint(0xe74c3c);
 
-  // frontline curtain
+  // frontline curtain — neon Bitcoin orange: additive haze + hot core
+  // (bloom halos the core like the tanks and grenades)
   const frontLine = new THREE.Mesh(
-    new THREE.BoxGeometry(0.3, 3.2, 64),
+    new THREE.BoxGeometry(0.5, 3.2, 64),
     new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false,
+      color: 0xf7931a, transparent: true, opacity: 0.38,
+      blending: THREE.AdditiveBlending, depthWrite: false,
     }),
   );
   frontLine.position.y = 1.6;
   scene.add(frontLine);
+  const frontCore = new THREE.Mesh(
+    new THREE.BoxGeometry(0.12, 3.4, 64),
+    new THREE.MeshBasicMaterial({
+      color: 0xffc266, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+  );
+  frontCore.position.y = 1.7;
+  scene.add(frontCore);
 
   function setFront(front) {
     frontLine.position.x = front;
+    frontCore.position.x = front;
     const EDGE = 220;
     bullTint.scale.x = Math.max(0.01, front + EDGE);
     bullTint.position.x = (front - EDGE) / 2;
