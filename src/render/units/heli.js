@@ -80,7 +80,7 @@ export function createHelis(scene, battle, explosions, onFire) {
         } else if (h.state === 'hover') {
           h.hoverT -= dt;
           h.fireT -= dt;
-          h.x += (f + dir * 10 - h.x) * Math.min(1, dt * 1.2); // track the front
+          h.x += (f + dir * 10 - h.x) * Math.min(1, dt * 2.4); // track the front
           if (h.fireT <= 0) {
             h.fireT = 1.1;
             const ex = f - dir * rnd(2, 8);

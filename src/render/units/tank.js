@@ -79,14 +79,14 @@ export function createTanks(scene, battle, explosions, onFire) {
         const dir = dirOf(t.side);
         if (t.state === 'in') {
           const tx = f + dir * 15;
-          t.x += Math.sign(tx - t.x) * Math.min(9 * dt, Math.abs(tx - t.x));
+          t.x += Math.sign(tx - t.x) * Math.min(17 * dt, Math.abs(tx - t.x));
           if (Math.abs(t.x - tx) < 0.6) t.state = 'hold';
         } else if (t.state === 'hold') {
           t.life -= dt;
           t.fireT -= dt;
-          // track the frontline while holding
+          // track the frontline while holding (fast enough for violent moves)
           const tx = f + dir * 15;
-          t.x += (tx - t.x) * Math.min(1, dt * 1.5);
+          t.x += (tx - t.x) * Math.min(1, dt * 3);
           if (t.fireT <= 0) {
             t.fireT = 2.4 + rnd(0, 1.4);
             t.recoil = 0.55;
@@ -98,9 +98,13 @@ export function createTanks(scene, battle, explosions, onFire) {
           }
           if (t.life <= 0) t.state = 'out';
         } else { // out
-          t.x += dir * 9 * dt;
+          t.x += dir * 16 * dt;
           if (Math.abs(t.x - f) > 70) { t.active = false; t.m.visible = false; }
         }
+        // the price wall shoves tanks too — never stranded on the wrong side
+        if (t.side === 0) t.x = Math.min(t.x, f - 6);
+        else t.x = Math.max(t.x, f + 6);
+
         t.recoil *= Math.exp(-dt * 6);
         t.m.position.set(t.x + dir * t.recoil * 0.6, 0, t.z);
         battle.displace(t.x, t.z, 4.6, dt); // plow infantry aside, don't ghost through

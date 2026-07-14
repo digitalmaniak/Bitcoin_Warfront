@@ -299,11 +299,13 @@ export function createBattle() {
     },
 
     update(dt) {
-      // true price mapping: the front travels as price moves
-      front = (price - base) * CFG.priceScale;
+      // true price mapping with a tween: the wall GLIDES to its new price
+      // instead of teleporting — plowing swept units along the whole way
+      const targetFront = (price - base) * CFG.priceScale;
+      front += (targetFront - front) * Math.min(1, dt * 2.2);
       if (Math.abs(front) > CFG.rebaseAt) {
         const dx = -front;
-        base = price;
+        base -= dx / CFG.priceScale; // preserves the remaining glide exactly
         front = 0;
         for (const u of units) if (u.alive) u.x += dx;
         for (const side of ['bid', 'ask']) for (const w of walls[side]) w.x += dx;
@@ -341,6 +343,18 @@ export function createBattle() {
         }
         alive[u.side]++;
 
+        // the price wall is physical: it sweeps living stragglers along so
+        // no one ends up on the wrong side (chargers may cross to fight)
+        if (!u.charge) {
+          if (u.side === 0 && u.x > front - 1.2) {
+            u.x = front - 1.2;
+            if (u.kx > 0) u.kx = 0;
+          } else if (u.side === 1 && u.x < front + 1.2) {
+            u.x = front + 1.2;
+            if (u.kx < 0) u.kx = 0;
+          }
+        }
+
         if (u.state === STATE.DOOMED) { // hit registered, falls when shot lands
           u.doomT -= dt;
           if (u.doomT <= 0) dieShot(u);
@@ -375,7 +389,10 @@ export function createBattle() {
             }
           }
         } else {
-          const v = u.speed * (u.charge ? 1 : 0.6) * dt;
+          // urgency scaling: far from position (big price move) → run;
+          // close-range milling stays calm
+          const urgency = u.charge ? 1 : 0.55 + Math.min(1.6, d / 18);
+          const v = u.speed * urgency * dt;
           u.x += (dx / d) * v;
           u.z += (dz / d) * v;
         }
