@@ -59,10 +59,30 @@ export function createBattle() {
     return u;
   }
 
+  // Sample a standing depth from the order book: soldiers cluster at price
+  // levels with real resting liquidity — the army IS the depth histogram.
+  // ~30% stay uniform so thin books still look like a coherent force.
+  function sampleOx(side) {
+    const arr = side === 0 ? walls.bid : walls.ask;
+    if (arr.length && Math.random() < 0.7) {
+      let tot = 0;
+      for (const w of arr) tot += w.q;
+      let pick = Math.random() * tot;
+      for (const w of arr) {
+        pick -= w.q;
+        if (pick <= 0) {
+          const off = Math.abs(w.x - front) + rnd(-2.5, 2.5);
+          return Math.max(3, Math.min(CFG.fieldX - 12, off));
+        }
+      }
+    }
+    return rnd(3, 42);
+  }
+
   function spawnSoldier(side) {
     const u = spawn(side);
     if (!u) return;
-    u.ox = rnd(3, 42); // deeper deployment band — armies breathe
+    u.ox = sampleOx(side);
     u.tz = rnd(-CFG.fieldZ, CFG.fieldZ);
     u.z = rnd(-CFG.fieldZ, CFG.fieldZ);
     u.x = front + sideDir(side) * rnd(30, CFG.fieldX);
@@ -347,6 +367,11 @@ export function createBattle() {
             u.state = STATE.FIGHT;
             if (Math.random() < dt * 0.5) {
               u.tz = Math.max(-CFG.fieldZ, Math.min(CFG.fieldZ, u.tz + rnd(-3, 3)));
+            }
+            // re-anchor to the live book so crowds migrate with the walls
+            if (Math.random() < dt * 0.08) {
+              u.ox = sampleOx(u.side);
+              u.state = STATE.MARCH;
             }
           }
         } else {
