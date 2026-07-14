@@ -26,6 +26,7 @@ invented — everything that explodes traces back to real traded volume.
 | Charges & casualties | Trades from the live tape, log-scaled vs the rolling average; every falling soldier is a counted kill delivered by a visible tracer |
 | Battle rounds | 1-minute candles — body = ground gained/lost, banner every close |
 | "WALL BREACHED" | A large depth wall eaten as price crossed it |
+| ⚡ Execution beams | **Real forced liquidations** — a liquidated long means bull soldiers behind their own lines get a cold beam of light and dissolve. Scaled by notional ($100k+ gets a banner, $1M+ slow-mo); 3 in 5s = "LIQUIDATION CASCADE" |
 
 ## Escalation ladder
 
@@ -49,8 +50,9 @@ it's spent on rotating mortar barrages / tank sorties / strafing runs — small
 trades pool into big booms. A **director** guarantees no 45 seconds pass
 without heavy hardware, spending whatever the pot holds (7% MOAB jackpot).
 
-Demo hotkeys `1–6` fire each tier directly for show-and-tell — they bypass
-the trade pipeline and never touch the kill counters' honesty.
+Demo hotkeys `1–6` fire each tier directly for show-and-tell, and `8`
+triggers a random-sized demo liquidation — all bypass the trade pipeline
+and never touch the kill counters' honesty.
 
 ## Physics
 
@@ -72,7 +74,10 @@ destination — the live chain is re-probed every 60s. Pick a source from the
 top-left dropdown, or force one with `?feed=binance|bitstamp|coinbase|fake`.
 
 Trades, top-of-book depth, and candles are all derived from public WebSocket
-streams. No API keys, no backend — the entire app is static files.
+streams. A separate liquidation feed (Binance futures → Bybit → OKX forced
+orders, same fallback pattern) drives the execution beams — on live data you
+see real wrecks or nothing; synthetic liquidations exist only in simulator
+mode. No API keys, no backend — the entire app is static files.
 
 ## Options (top-right)
 
@@ -107,6 +112,7 @@ node test/rebase-test.js    # price mapping, tween, seamless rebase
 node test/physics-test.js   # launches, landings, stagger, displacement
 node test/cluster-test.js   # troops mass at dominant walls
 node test/sweep-test.js     # nobody ends up behind the moving wall
+node test/liq-test.js       # executions: right side, right place, honest counters
 ```
 
 ## Architecture
@@ -114,7 +120,8 @@ node test/sweep-test.js     # nobody ends up behind the moving wall
 ```
 src/
   market/    feed.js (auto-fallback + reconnect), adapters/ (binance,
-             bitstamp, coinbase, fake), candles.js, normalize.js
+             bitstamp, coinbase, fake), liquidations.js, candles.js,
+             normalize.js
   core/      bus.js — event bus between sim and FX
   sim/       battle.js (pure JS war sim — unit-testable, no three.js),
              arsenal.js (escalation ladder), artillery.js (ordnance pot)
@@ -143,7 +150,7 @@ only volume that actually traded, just on a randomized schedule.
 
 ## Roadmap
 
-- [ ] Liquidation feed — forced liquidations as battlefield executions
+- [x] Liquidation feed — forced liquidations as battlefield executions
 - [ ] War report card — shareable hourly stats (kills, biggest whale, ground)
 - [ ] Historic battle replays (COVID crash, ETF day)
 - [ ] Multi-asset theaters (ETH front)

@@ -71,7 +71,7 @@ export function createHud() {
       <div class="tug-bar"><div id="tug-buy"></div></div>
       <div class="tug-labels"><span id="bv">BUY 0.0</span><span id="sv">SELL 0.0</span></div>
     </div>
-    <div class="hint">keys 1–6 fire the ladder · drag to orbit · scroll to zoom</div>`;
+    <div class="hint">keys 1–6 fire the ladder · 8 rekt · drag to orbit · scroll to zoom</div>`;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -184,6 +184,18 @@ export function createHud() {
           st.classList.toggle('on', on);
         });
       }
+    },
+    // liquidation print: violet REKT row, visually distinct from trades
+    tapeLiq(side, qty, notional) {
+      const row = document.createElement('div');
+      row.className = 'trow liq';
+      const usd = notional >= 1e6
+        ? `$${(notional / 1e6).toFixed(1)}M`
+        : `$${Math.round(notional / 1000)}K`;
+      row.innerHTML = `<span>⚡ REKT ${side.toUpperCase()}S</span><span>${
+        qty.toFixed(qty < 1 ? 3 : 2)} · ${usd}</span>`;
+      el.tapeBody.appendChild(row);
+      while (el.tapeBody.children.length > 26) el.tapeBody.removeChild(el.tapeBody.firstChild);
     },
     // high-speed trade tape: newest at the bottom, near the tug bar
     tapeTrade(side, qty, price, big) {

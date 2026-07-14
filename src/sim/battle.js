@@ -28,7 +28,7 @@ export function createBattle() {
     units.push({
       i, alive: false, side: 0, state: STATE.MARCH,
       x: 0, z: 0, ox: 6, tz: 0, speed: 5, s: 1,
-      charge: false, deathT: 0, dur: 1.1,
+      charge: false, deathT: 0, dur: 1.1, exec: false,
       // physics: height, vertical velocity, knockback, tumble, stagger, doom
       y: 0, vy: 0, kx: 0, kz: 0, spin: 0, stun: 0, doomT: 0,
     });
@@ -54,7 +54,7 @@ export function createBattle() {
     if (i === undefined) return null;
     const u = units[i];
     u.alive = true; u.side = side; u.state = STATE.MARCH;
-    u.charge = false; u.deathT = 0; u.s = 1; u.dur = 1.1;
+    u.charge = false; u.deathT = 0; u.s = 1; u.dur = 1.1; u.exec = false;
     u.y = 0; u.vy = 0; u.kx = 0; u.kz = 0; u.spin = 0; u.stun = 0; u.doomT = 0;
     return u;
   }
@@ -64,14 +64,15 @@ export function createBattle() {
   // ~30% stay uniform so thin books still look like a coherent force.
   function sampleOx(side) {
     const arr = side === 0 ? walls.bid : walls.ask;
-    if (arr.length && Math.random() < 0.7) {
+    if (arr.length && Math.random() < 0.85) {
+      // superlinear weights (q^1.3) make dominant walls visibly dominant
       let tot = 0;
-      for (const w of arr) tot += w.q;
+      for (const w of arr) tot += Math.pow(w.q, 1.3);
       let pick = Math.random() * tot;
       for (const w of arr) {
-        pick -= w.q;
+        pick -= Math.pow(w.q, 1.3);
         if (pick <= 0) {
-          const off = Math.abs(w.x - front) + rnd(-2.5, 2.5);
+          const off = Math.abs(w.x - front) + rnd(-1.8, 1.8); // hug the wall
           return Math.max(3, Math.min(CFG.fieldX - 12, off));
         }
       }
@@ -192,6 +193,28 @@ export function createBattle() {
       if (count >= 8) skullQ.push({ x: bx, z: bz, n: Math.min(4, 1 + Math.ceil(count / 12)) });
       shake = Math.max(shake, Math.min(1.6, count / 18 + power * 0.15));
       return killed;
+    },
+
+    // Forced liquidations: units of the wrecked side are EXECUTED behind
+    // their own lines — no combat, no knockback, they dissolve where they
+    // stood. Returns the spots so the renderer can drop beams on them.
+    // Not counted as combat kills: the market did this, not the enemy.
+    execute(side, count) {
+      const spots = [];
+      const start = (Math.random() * units.length) | 0;
+      for (let k = 0; k < units.length && spots.length < count; k++) {
+        const u = units[(start + k) % units.length];
+        if (!u.alive || u.side !== side || u.s > 2) continue;
+        if (u.state !== STATE.MARCH && u.state !== STATE.FIGHT) continue;
+        const off = Math.abs(u.x - front);
+        if (off < 4 || off > 44) continue;
+        u.state = STATE.DEAD;
+        u.exec = true;
+        u.deathT = 0; u.dur = 1.5;
+        u.kx = 0; u.kz = 0; u.vy = 0; u.y = 0; u.spin = 0;
+        spots.push({ x: u.x, z: u.z });
+      }
+      return spots;
     },
 
     // Continuous push field (tanks plowing through the ranks).
@@ -383,7 +406,7 @@ export function createBattle() {
               u.tz = Math.max(-CFG.fieldZ, Math.min(CFG.fieldZ, u.tz + rnd(-3, 3)));
             }
             // re-anchor to the live book so crowds migrate with the walls
-            if (Math.random() < dt * 0.08) {
+            if (Math.random() < dt * 0.14) {
               u.ox = sampleOx(u.side);
               u.state = STATE.MARCH;
             }

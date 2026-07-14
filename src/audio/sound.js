@@ -129,6 +129,20 @@ export function createAudio() {
       src.start(); src.stop(t + 2.9);
       lfo.start(); lfo.stop(t + 2.9);
     },
+    // liquidation zap: sharp electrical descend — cold, not an explosion
+    zap(x, big = false) {
+      if (!ctx || muted) return;
+      const o = out(x);
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(big ? 1400 : 950, t);
+      osc.frequency.exponentialRampToValueAtTime(90, t + (big ? 0.35 : 0.18));
+      const g = ctx.createGain();
+      env(g, (big ? 0.2 : 0.11) * o.att, big ? 0.4 : 0.2);
+      osc.connect(g).connect(o.pan);
+      osc.start(); osc.stop(t + (big ? 0.45 : 0.25));
+    },
     setMuted(m) {
       muted = m;
       if (master) master.gain.value = m ? 0 : 0.5;

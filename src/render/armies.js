@@ -50,6 +50,14 @@ export function createArmies(scene, battle) {
 
       if (u.state === 2) { // dying
         const k = Math.min(1, u.deathT);
+        if (u.exec) { // liquidated: dissolve upward, spinning, shrinking
+          dummy.position.y = k * 2.6;
+          dummy.rotation.set(0, yaw + k * 6, 0);
+          dummy.scale.setScalar(Math.max(0.001, u.s * (1 - k)));
+          dummy.updateMatrix();
+          meshes[u.side].setMatrixAt(idx, dummy.matrix);
+          continue;
+        }
         if (u.y > 0.02) { // blast-launched: airborne tumble
           dummy.position.y = u.y;
           dummy.rotation.set(u.spin * k * 3, yaw, u.spin * k * 3.7);

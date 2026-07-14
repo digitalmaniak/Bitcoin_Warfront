@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { startFeed } from './market/feed.js';
+import { startLiquidations } from './market/liquidations.js';
 import { createCandles } from './market/candles.js';
 import { createNormalizer } from './market/normalize.js';
 import { createBattle } from './sim/battle.js';
@@ -13,6 +14,7 @@ import { createEffects } from './render/effects.js';
 import { createExplosions } from './render/fx/explosions.js';
 import { createTracers } from './render/fx/tracers.js';
 import { createGrenades } from './render/fx/grenades.js';
+import { createBeams } from './render/fx/beams.js';
 import { createTanks } from './render/units/tank.js';
 import { createJets } from './render/units/jet.js';
 import { createHelis } from './render/units/heli.js';
@@ -35,6 +37,7 @@ const armies = createArmies(scene, battle);
 const walls = createWalls(scene, battle);
 const skulls = createEffects(scene);
 const explosions = createExplosions(scene);
+const beams = createBeams(scene);
 const tracers = createTracers(scene, battle);
 const grenades = createGrenades(scene, battle, explosions, (s, x) => audio.explosion(s, x));
 const tanks = createTanks(scene, battle, explosions, (x) => audio.explosion(0.7, x));
@@ -134,6 +137,7 @@ const dayCurve = () => {
 let lastPrice = 0;
 let sessionOpen = 0;
 let lastFeedName = '';
+let feedIsSim = false; // must exist before the first feed status event
 let buyV = 0, sellV = 0;
 let round = 1;
 
@@ -187,12 +191,58 @@ function handleEvent(type, d) {
       if (lastFeedName) sessionOpen = 0;
       lastFeedName = d.name;
     }
+    feedIsSim = !!d.sim;
     hud.setFeed(d.name, !!d.live, !!d.sim);
   }
 }
 
 const feed = startFeed(handleEvent);
 hud.onFeedSelect((src) => feed.use(src));
+
+// ── liquidations: the market executing its own soldiers ────────────────────
+const liqTimes = [];
+let cascadeCooldown = 0;
+
+function onLiq(liq) {
+  const vSide = liq.side === 'long' ? 0 : 1; // longs die on the bull side
+  const N = liq.notional;
+  const count =
+    N < 10000 ? 1
+    : N < 100000 ? Math.min(8, 3 + Math.floor(N / 25000))
+    : N < 1e6 ? Math.min(18, 10 + Math.floor(N / 150000))
+    : Math.min(30, 20 + Math.floor(N / 500000));
+
+  const spots = battle.execute(vSide, count);
+  for (const p of spots) beams.spawn(p.x, p.z, vSide);
+  audio.zap(battle.front, N >= 100000);
+  hud.tapeLiq(liq.side, liq.qty, N);
+
+  if (N >= 100000 && Date.now() >= bannerLockUntil) {
+    hud.banner(
+      liq.side === 'long' ? 'LONGS LIQUIDATED' : 'SHORTS LIQUIDATED',
+      liq.side === 'long' ? 'bears' : 'bulls',
+      `$${N >= 1e6 ? `${(N / 1e6).toFixed(1)}M` : `${Math.round(N / 1000)}K`} FORCED OUT`,
+    );
+    rig.addTrauma(N >= 1e6 ? 0.8 : 0.4);
+    if (N >= 1e6) { timeScale = 0.35; slowmoT = 0.4; }
+  }
+
+  // cascade: 3+ liquidations inside 5s → the market is eating itself
+  const now = Date.now();
+  liqTimes.push(now);
+  while (liqTimes.length && now - liqTimes[0] > 5000) liqTimes.shift();
+  if (liqTimes.length >= 3 && now > cascadeCooldown) {
+    cascadeCooldown = now + 25000;
+    hud.banner('LIQUIDATION CASCADE', liq.side === 'long' ? 'bears' : 'bulls',
+      'STOPS TRIGGERING STOPS', 3400);
+    rig.addTrauma(0.9);
+  }
+}
+
+startLiquidations(onLiq, {
+  isSim: () => feedIsSim,
+  getPrice: () => lastPrice,
+});
 
 // "WHILE YOU WERE GONE" — the backlog of frozen attacks bursts on return;
 // this banner explains it with what the market did in the meantime.
@@ -231,6 +281,14 @@ window.addEventListener('keydown', (e) => {
   if (e.key === '4') bus.emit('airstrike', { side, kills: 30 });
   if (e.key === '5') bus.emit('carpet', { side, kills: 60 });
   if (e.key === '6') bus.emit('moab', { side, kills: 80 });
+  if (e.key === '8') { // demo liquidation, random tier
+    const notional = [8000, 60000, 400000, 1600000][(Math.random() * 4) | 0];
+    const price = lastPrice || 60000;
+    onLiq({
+      side: Math.random() < 0.5 ? 'long' : 'short',
+      qty: notional / price, price, notional, ts: Date.now(),
+    });
+  }
 });
 
 const clock = new THREE.Clock();
@@ -246,6 +304,7 @@ renderer.setAnimationLoop(() => {
   walls.update(dt);
   tracers.update(dt, battle.aggression, (s, x) => audio.shot(x));
   explosions.update(dt);
+  beams.update(dt);
   grenades.update(dt);
   tanks.update(dt);
   jets.update(dt);
@@ -279,6 +338,7 @@ renderer.setAnimationLoop(() => {
     tanks.shiftX(dx);
     jets.shiftX(dx);
     helis.shiftX(dx);
+    beams.shiftX(dx);
     skulls.shiftX(dx);
     rig.shiftX(dx);
     ruler.rebuild(battle.base);
