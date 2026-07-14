@@ -23,9 +23,14 @@ function buildTankGeo() {
 // An enemy airstrike landing nearby destroys it.
 export function createTanks(scene, battle, explosions, onFire) {
   const geo = buildTankGeo();
+  // neon glow: hardware must pop against walls and infantry (bloom catches these)
   const mats = [
-    new THREE.MeshStandardMaterial({ color: 0x2e8f5c, emissive: 0x0a2e1a, roughness: 0.6 }),
-    new THREE.MeshStandardMaterial({ color: 0xc44536, emissive: 0x30100a, roughness: 0.6 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x2eff7e, emissive: 0x00ff66, emissiveIntensity: 0.55, roughness: 0.35,
+    }),
+    new THREE.MeshStandardMaterial({
+      color: 0xff4a3a, emissive: 0xff2200, emissiveIntensity: 0.55, roughness: 0.35,
+    }),
   ];
   const pool = [];
   for (let side = 0; side < 2; side++) {

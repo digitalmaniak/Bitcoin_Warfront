@@ -20,6 +20,7 @@ const cases = [
   [2, null],
   [7, 'grenade'],            // ≥ 5
   [15, 'tank'],              // ≥ 12
+  [30, 'heli'],              // ≥ 25
   [whaleR * 1.2, 'airstrike'],
   [whaleR * TIERS.CARPET_X * 1.1, 'carpet'],
   [whaleR * TIERS.MOAB_X * 1.1, 'moab'],

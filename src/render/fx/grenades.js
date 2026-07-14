@@ -2,11 +2,15 @@ import * as THREE from 'three';
 
 // Parabolic grenade lobs → small cluster blast at the enemy edge.
 export function createGrenades(scene, battle, explosions, onBoom) {
-  const geo = new THREE.SphereGeometry(0.28, 8, 6);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.7 });
+  const geo = new THREE.SphereGeometry(0.3, 8, 6);
+  // unlit neon tracers-with-an-arc: bright enough for bloom to halo them
+  const mats = [
+    new THREE.MeshBasicMaterial({ color: 0x6dffb8 }),
+    new THREE.MeshBasicMaterial({ color: 0xff8a72 }),
+  ];
   const pool = [];
   for (let i = 0; i < 24; i++) {
-    const m = new THREE.Mesh(geo, mat);
+    const m = new THREE.Mesh(geo, mats[0]);
     m.visible = false; scene.add(m);
     pool.push({ m, live: false, t: 0, T: 0.9, h: 4.5, x0: 0, z0: 0, x1: 0, z1: 0, side: 0 });
   }
@@ -20,6 +24,7 @@ export function createGrenades(scene, battle, explosions, onBoom) {
       const dir = side === 0 ? -1 : 1;
       const f = battle.front;
       g.live = true; g.t = 0; g.side = side;
+      g.m.material = mats[side];
       g.T = opts.mortar ? 1.35 : 0.9;
       g.h = opts.mortar ? 9.5 : 4.5;
       g.z0 = rnd(-22, 22);

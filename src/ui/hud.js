@@ -11,6 +11,14 @@ export function createHud() {
       </div>
     </div>
     <div id="round">ROUND 1</div>
+    <div class="feed opts" id="opts">
+      <span>OPTIONS</span><span id="opts-arrow">▾</span>
+      <div class="feed-menu opts-menu" id="opts-menu">
+        <div class="fitem oitem" data-key="sound">SOUND <span class="ostate" id="os-sound">OFF</span></div>
+        <div class="fitem oitem" data-key="clean">CLEAN MODE <span class="ostate" id="os-clean">OFF</span></div>
+        <div class="fitem oitem" data-key="daynight">DAY/NIGHT <span class="ostate on" id="os-daynight">ON</span></div>
+      </div>
+    </div>
     <div class="price-wrap">
       <div id="price">—</div>
       <div class="sub">BTC/USD <span id="chg">0.00%</span></div>
@@ -34,21 +42,21 @@ export function createHud() {
           <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="1" y="9" width="15" height="5" rx="2"/><rect x="5" y="5" width="7" height="5" rx="1"/><rect x="12" y="6" width="11" height="2"/></svg>
           <span class="ln">TANK</span><span class="lt">12× avg</span><span class="lk">2</span>
         </div>
+        <div class="lrow" id="lr-heli" style="--c:#4dd6ff">
+          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="2" y="2" width="20" height="2" rx="1"/><rect x="7" y="6" width="10" height="6" rx="2"/><rect x="2" y="8" width="6" height="2" rx="1"/></svg>
+          <span class="ln">HELICOPTER</span><span class="lt">25× avg</span><span class="lk">3</span>
+        </div>
         <div class="lrow" id="lr-air" style="--c:#f5b043">
           <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><polygon points="23,8 3,2 9,8 3,14"/></svg>
-          <span class="ln">AIRSTRIKE</span><span class="lt">whale</span><span class="lk">3</span>
+          <span class="ln">AIRSTRIKE</span><span class="lt">whale</span><span class="lk">4</span>
         </div>
         <div class="lrow" id="lr-carpet" style="--c:#ef5340">
           <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><polygon points="12,4 2,1 5,4 2,7"/><polygon points="17,8 7,5 10,8 7,11"/><polygon points="12,12 2,9 5,12 2,15"/></svg>
-          <span class="ln">SQUADRON</span><span class="lt">2.5× whale</span><span class="lk">4</span>
+          <span class="ln">SQUADRON</span><span class="lt">2.5× whale</span><span class="lk">5</span>
         </div>
         <div class="lrow" id="lr-moab" style="--c:#f7e04a">
           <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><circle cx="12" cy="11" r="4"/><rect x="11" y="1" width="2" height="5"/><rect x="5" y="9" width="3" height="2" transform="rotate(-35 6.5 10)"/><rect x="16" y="9" width="3" height="2" transform="rotate(35 17.5 10)"/></svg>
-          <span class="ln">MOAB</span><span class="lt">6× whale</span><span class="lk">5</span>
-        </div>
-        <div class="lrow" id="lr-pot" style="--c:#c9c9d2">
-          <svg width="24" height="16" viewBox="0 0 24 16" fill="currentColor"><rect x="4" y="10" width="3" height="5"/><rect x="10" y="7" width="3" height="8"/><rect x="16" y="3" width="3" height="12"/></svg>
-          <span class="ln">ARTILLERY</span><span class="lt">pooled flow</span><span class="lk">6</span>
+          <span class="ln">MOAB</span><span class="lt">6× whale</span><span class="lk">6</span>
         </div>
       </div>
     </div>
@@ -63,7 +71,6 @@ export function createHud() {
       <div class="tug-bar"><div id="tug-buy"></div></div>
       <div class="tug-labels"><span id="bv">BUY 0.0</span><span id="sv">SELL 0.0</span></div>
     </div>
-    <button id="mute" title="toggle sound">🔇</button>
     <div class="hint">keys 1–6 fire the ladder · drag to orbit · scroll to zoom</div>`;
 
   const $ = (id) => document.getElementById(id);
@@ -161,12 +168,22 @@ export function createHud() {
       clearTimeout(flashT[tier]);
       flashT[tier] = setTimeout(() => row.classList.remove('fire'), 850);
     },
-    onMute(cb) {
-      const btn = document.getElementById('mute');
-      btn.addEventListener('click', () => {
-        const muted = cb();
-        btn.textContent = muted ? '🔇' : '🔊';
+    // options dropdown: handler(key) returns the new ON/OFF state to display
+    onOptions(handler) {
+      const opts = document.getElementById('opts');
+      opts.addEventListener('click', () => opts.classList.toggle('open'));
+      window.addEventListener('click', (e) => {
+        if (!opts.contains(e.target)) opts.classList.remove('open');
       });
+      for (const item of opts.querySelectorAll('.oitem')) {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const on = handler(item.dataset.key);
+          const st = item.querySelector('.ostate');
+          st.textContent = on ? 'ON' : 'OFF';
+          st.classList.toggle('on', on);
+        });
+      }
     },
     // high-speed trade tape: newest at the bottom, near the tug bar
     tapeTrade(side, qty, price, big) {

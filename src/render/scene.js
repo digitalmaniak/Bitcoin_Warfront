@@ -16,10 +16,23 @@ export function createScene() {
   camera.position.set(0, 48, 88);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new THREE.HemisphereLight(0x8899bb, 0x0c0c10, 0.9));
+  const hemi = new THREE.HemisphereLight(0x8899bb, 0x0c0c10, 0.9);
+  scene.add(hemi);
   const dir = new THREE.DirectionalLight(0xffffff, 1.1);
   dir.position.set(30, 60, 20);
   scene.add(dir);
+
+  // day/night: b = 0 (deep night) .. 1 (full day); tints lights + fog + sky
+  const nightC = new THREE.Color(0x050509);
+  const dayC = new THREE.Color(0x10101a);
+  const envC = new THREE.Color();
+  function setDayNight(b) {
+    hemi.intensity = 0.42 + 0.55 * b;
+    dir.intensity = 0.5 + 0.68 * b;
+    envC.lerpColors(nightC, dayC, b);
+    scene.background.copy(envC);
+    scene.fog.color.copy(envC);
+  }
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(320, 160),
@@ -74,5 +87,5 @@ export function createScene() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  return { renderer, scene, camera, setFront };
+  return { renderer, scene, camera, setFront, setDayNight };
 }

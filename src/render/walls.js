@@ -11,7 +11,7 @@ export function createWalls(scene, battle) {
     const im = new THREE.InstancedMesh(
       geo,
       new THREE.MeshStandardMaterial({
-        color, emissive, transparent: true, opacity: 0.30,
+        color, emissive, transparent: true, opacity: 0.14, // infantry visible through walls
         roughness: 0.4, depthWrite: false,
       }),
       CFG.wallCap,

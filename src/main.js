@@ -15,6 +15,7 @@ import { createTracers } from './render/fx/tracers.js';
 import { createGrenades } from './render/fx/grenades.js';
 import { createTanks } from './render/units/tank.js';
 import { createJets } from './render/units/jet.js';
+import { createHelis } from './render/units/heli.js';
 import { createCameraRig } from './render/camera.js';
 import { createRuler } from './render/ruler.js';
 import { createPostFX } from './render/postfx.js';
@@ -22,7 +23,7 @@ import { createAudio } from './audio/sound.js';
 import { createHud } from './ui/hud.js';
 
 const hud = createHud();
-const { renderer, scene, camera, setFront } = createScene();
+const { renderer, scene, camera, setFront, setDayNight } = createScene();
 const battle = createBattle();
 const bus = createBus();
 const norm = createNormalizer();
@@ -35,8 +36,9 @@ const walls = createWalls(scene, battle);
 const skulls = createEffects(scene);
 const explosions = createExplosions(scene);
 const tracers = createTracers(scene, battle);
-const grenades = createGrenades(scene, battle, explosions, (s) => audio.explosion(s));
-const tanks = createTanks(scene, battle, explosions, () => audio.explosion(0.7));
+const grenades = createGrenades(scene, battle, explosions, (s, x) => audio.explosion(s, x));
+const tanks = createTanks(scene, battle, explosions, (x) => audio.explosion(0.7, x));
+const helis = createHelis(scene, battle, explosions, (x) => audio.explosion(0.6, x));
 const rig = createCameraRig(camera, renderer, battle);
 const ruler = createRuler(scene);
 const postfx = createPostFX(renderer, scene, camera);
@@ -71,15 +73,19 @@ bus.on('grenade', (d) => {
   hud.flashTier('grenade');
 });
 bus.on('tank', (d) => { tanks.deploy(d.side); hud.flashTier('tank'); heavyNow(); });
+bus.on('heli', (d) => {
+  helis.deploy(d.side); audio.heli(battle.front); hud.flashTier('heli'); heavyNow();
+});
 bus.on('airstrike', (d) => {
-  jets.strike(d.side, d.kills); audio.jet(); hud.flashTier('air'); heavyNow();
+  jets.strike(d.side, d.kills); audio.jet(battle.front); hud.flashTier('air'); heavyNow();
 });
 bus.on('carpet', (d) => {
-  jets.carpet(d.side, d.kills); audio.jet(); slowMo(); hud.flashTier('carpet'); heavyNow();
+  jets.carpet(d.side, d.kills); audio.jet(battle.front); slowMo();
+  hud.flashTier('carpet'); heavyNow();
 });
 bus.on('moab', (d) => {
   jets.moab(d.side, d.kills);
-  audio.jet();
+  audio.jet(battle.front);
   hud.whale('💣 MOAB INBOUND');
   hud.flashTier('moab');
   heavyNow();
@@ -108,7 +114,22 @@ for (const [ms, side, zoff] of INTRO) {
   setTimeout(() => { jets.flyover(side, zoff); rig.addTrauma(0.12); }, ms);
 }
 
-hud.onMute(() => { audio.setMuted(!audio.muted); return audio.muted; });
+audio.setListener(() => rig.controls.target.x);
+let dayNightOn = true;
+hud.onOptions((key) => {
+  if (key === 'sound') { audio.setMuted(!audio.muted); return !audio.muted; }
+  if (key === 'clean') return document.body.classList.toggle('clean');
+  if (key === 'daynight') { dayNightOn = !dayNightOn; return dayNightOn; }
+  return false;
+});
+
+// day/night follows the real clock: trough deep in the Asia overnight
+// (02:00 UTC), peak during the US session (14:00 UTC)
+const dayCurve = () => {
+  const d = new Date();
+  const h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  return 0.5 - 0.5 * Math.cos(((h - 2) / 24) * Math.PI * 2);
+};
 
 let lastPrice = 0;
 let sessionOpen = 0;
@@ -206,14 +227,10 @@ window.addEventListener('keydown', (e) => {
   const side = Math.random() < 0.5 ? 0 : 1;
   if (e.key === '1') bus.emit('grenade', { side, count: 2 });
   if (e.key === '2') bus.emit('tank', { side });
-  if (e.key === '3') bus.emit('airstrike', { side, kills: 30 });
-  if (e.key === '4') bus.emit('carpet', { side, kills: 60 });
-  if (e.key === '5') bus.emit('moab', { side, kills: 80 });
-  if (e.key === '6') {
-    bus.emit('ordnance', {
-      side, kind: ['mortar', 'tankSortie', 'strafe'][Math.floor(Math.random() * 3)],
-    });
-  }
+  if (e.key === '3') bus.emit('heli', { side });
+  if (e.key === '4') bus.emit('airstrike', { side, kills: 30 });
+  if (e.key === '5') bus.emit('carpet', { side, kills: 60 });
+  if (e.key === '6') bus.emit('moab', { side, kills: 80 });
 });
 
 const clock = new THREE.Clock();
@@ -227,11 +244,12 @@ renderer.setAnimationLoop(() => {
   battle.update(dt);
   armies.update(simT);
   walls.update(dt);
-  tracers.update(dt, battle.aggression, () => audio.shot());
+  tracers.update(dt, battle.aggression, (s, x) => audio.shot(x));
   explosions.update(dt);
   grenades.update(dt);
   tanks.update(dt);
   jets.update(dt);
+  helis.update(dt);
 
   // director: 45s without heavy hardware → spend whatever the pot holds
   if (battle.base && performance.now() - lastHeavy > 45000) {
@@ -260,6 +278,7 @@ renderer.setAnimationLoop(() => {
     grenades.shiftX(dx);
     tanks.shiftX(dx);
     jets.shiftX(dx);
+    helis.shiftX(dx);
     skulls.shiftX(dx);
     rig.shiftX(dx);
     ruler.rebuild(battle.base);
@@ -279,6 +298,7 @@ renderer.setAnimationLoop(() => {
   rig.update(rdt, simT);
   ruler.setFlip(camera.position.z < rig.controls.target.z); // numerals face the viewer
   setFront(battle.front);
+  setDayNight(dayNightOn ? dayCurve() : 0.65);
 
   const decay = Math.exp(-rdt / 45);
   buyV *= decay;

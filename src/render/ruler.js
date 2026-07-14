@@ -41,7 +41,7 @@ export function createRuler(scene) {
     return new THREE.Mesh(
       new THREE.PlaneGeometry(11, 2.75),
       new THREE.MeshBasicMaterial({
-        map: tex, transparent: true, opacity: 0.17, depthWrite: false,
+        map: tex, transparent: true, opacity: 0.55, depthWrite: false, // bright white
       }),
     );
   };

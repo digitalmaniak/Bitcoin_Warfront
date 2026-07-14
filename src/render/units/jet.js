@@ -23,9 +23,14 @@ function buildJetGeo() {
 // onImpact(x, z, side, kills, size) — main wires boom/kills/audio/tanks.
 export function createJets(scene, battle, onImpact, explosions, onMoabDrop) {
   const geo = buildJetGeo();
+  // neon glow: jets should read instantly against the dark sky (bloom-lit)
   const mats = [
-    new THREE.MeshStandardMaterial({ color: 0x35d07a, emissive: 0x0b3d22, roughness: 0.5 }),
-    new THREE.MeshStandardMaterial({ color: 0xf05a45, emissive: 0x3d0f0b, roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x2eff7e, emissive: 0x00ff66, emissiveIntensity: 0.75, roughness: 0.3,
+    }),
+    new THREE.MeshStandardMaterial({
+      color: 0xff4a3a, emissive: 0xff2200, emissiveIntensity: 0.75, roughness: 0.3,
+    }),
   ];
   const jets = [];
   for (let i = 0; i < 4; i++) {
