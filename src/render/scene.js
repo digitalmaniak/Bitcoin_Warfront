@@ -61,30 +61,48 @@ export function createScene() {
   const bullTint = mkTint(0x1f9d55);
   const bearTint = mkTint(0xe74c3c);
 
-  // frontline curtain — neon Bitcoin orange: additive haze + hot core
-  // (bloom halos the core like the tanks and grenades)
+  // frontline curtain — ONE double-sided plane with a gradient texture:
+  // true neon falloff (white-hot base → orange → transparent top), a single
+  // glowing surface from either side, one draw call, no additive stacking.
+  const cvs = document.createElement('canvas');
+  cvs.width = 4; cvs.height = 128;
+  const cctx = cvs.getContext('2d');
+  const grad = cctx.createLinearGradient(0, 0, 0, 128);
+  grad.addColorStop(0.0, 'rgba(247,147,26,0)');      // top: fades out
+  grad.addColorStop(0.45, 'rgba(247,147,26,0.55)');  // orange body
+  grad.addColorStop(0.8, 'rgba(255,194,102,0.85)');
+  grad.addColorStop(1.0, 'rgba(255,240,210,1)');     // base: white-hot
+  cctx.fillStyle = grad;
+  cctx.fillRect(0, 0, 4, 128);
   const frontLine = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 3.2, 64),
+    new THREE.PlaneGeometry(64, 1.8), // half height: tight hot band at the floor
     new THREE.MeshBasicMaterial({
-      color: 0xf7931a, transparent: true, opacity: 0.38,
-      blending: THREE.AdditiveBlending, depthWrite: false,
+      map: new THREE.CanvasTexture(cvs),
+      transparent: true, opacity: 0.85,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
     }),
   );
-  frontLine.position.y = 1.6;
+  frontLine.rotation.y = Math.PI / 2;
+  frontLine.position.y = 0.9;
   scene.add(frontLine);
-  const frontCore = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 3.4, 64),
+
+  // the price rod: a white-hot neon cylinder lying on the ground. A tube is
+  // rotationally symmetric — it reads identically from EVERY camera angle,
+  // so the price line can never go invisible edge-on.
+  const frontRod = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.3, 64, 12),
     new THREE.MeshBasicMaterial({
-      color: 0xffc266, transparent: true, opacity: 0.9,
+      color: 0xffd27a, transparent: true, opacity: 0.95,
       blending: THREE.AdditiveBlending, depthWrite: false,
     }),
   );
-  frontCore.position.y = 1.7;
-  scene.add(frontCore);
+  frontRod.rotation.x = Math.PI / 2; // lie along the battlefield's z axis
+  frontRod.position.y = 0.3;
+  scene.add(frontRod);
 
   function setFront(front) {
     frontLine.position.x = front;
-    frontCore.position.x = front;
+    frontRod.position.x = front;
     const EDGE = 220;
     bullTint.scale.x = Math.max(0.01, front + EDGE);
     bullTint.position.x = (front - EDGE) / 2;
