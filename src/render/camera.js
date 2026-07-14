@@ -13,7 +13,7 @@ export function createCameraRig(camera, renderer, battle) {
   controls.maxDistance = 180;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.25;
-  // user grabs the camera → stop orbiting; resume after 5 idle minutes
+  // user grabs the camera → stop orbiting; resume after 15 idle minutes
   let idleTimer = 0;
   controls.addEventListener('start', () => {
     controls.autoRotate = false;
@@ -21,7 +21,7 @@ export function createCameraRig(camera, renderer, battle) {
   });
   controls.addEventListener('end', () => {
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { controls.autoRotate = true; }, 5 * 60 * 1000);
+    idleTimer = setTimeout(() => { controls.autoRotate = true; }, 15 * 60 * 1000);
   });
 
   let trauma = 0;

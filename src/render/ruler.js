@@ -4,7 +4,7 @@ import { CFG } from '../sim/battle.js';
 // Price axis on the ground: faint $10 tick lines, $50 numerals lying flat
 // like runway markings along both field edges. Rebuilt on every rebase —
 // the world doesn't move, the numbers do.
-const SPAN = 170;   // world units covered each side of the base point
+const SPAN = 210;   // world units covered each side of the base point
 const MINOR = 10;   // $ per tick line
 const MAJOR = 50;   // $ per numeral
 

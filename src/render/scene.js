@@ -35,13 +35,13 @@ export function createScene() {
   }
 
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(320, 160),
+    new THREE.PlaneGeometry(440, 170),
     new THREE.MeshStandardMaterial({ color: 0x14141c, roughness: 1 }),
   );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  const grid = new THREE.GridHelper(320, 64, 0x26262e, 0x1b1b22);
+  const grid = new THREE.GridHelper(440, 88, 0x26262e, 0x1b1b22);
   grid.position.y = 0.02;
   scene.add(grid);
 
@@ -73,7 +73,7 @@ export function createScene() {
 
   function setFront(front) {
     frontLine.position.x = front;
-    const EDGE = 160;
+    const EDGE = 220;
     bullTint.scale.x = Math.max(0.01, front + EDGE);
     bullTint.position.x = (front - EDGE) / 2;
     bearTint.scale.x = Math.max(0.01, EDGE - front);

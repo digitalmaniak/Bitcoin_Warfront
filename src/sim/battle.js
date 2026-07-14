@@ -7,12 +7,12 @@
 // same offset in one frame (seamless) and the ground ruler renumbers.
 
 export const CFG = {
-  fieldX: 70,        // half-width of the battlefield (world units)
+  fieldX: 88,        // half-width of the battlefield (world units)
   fieldZ: 28,        // half-depth
   poolSize: 4400,    // total unit pool (both sides)
   meshCap: 3000,     // per-side render capacity
-  rebaseAt: 60,      // world units (= $150) of front travel before rebase
-  priceScale: 0.4,   // world units per $
+  rebaseAt: 83,      // world units (≈ $150) of front travel before rebase
+  priceScale: 0.55,  // world units per $ (wider axis = more breathing room)
   bucket: 10,        // $ per depth-wall bucket
   wallCap: 24,       // max walls rendered per side
 };
@@ -62,7 +62,7 @@ export function createBattle() {
   function spawnSoldier(side) {
     const u = spawn(side);
     if (!u) return;
-    u.ox = rnd(3, 26);
+    u.ox = rnd(3, 42); // deeper deployment band — armies breathe
     u.tz = rnd(-CFG.fieldZ, CFG.fieldZ);
     u.z = rnd(-CFG.fieldZ, CFG.fieldZ);
     u.x = front + sideDir(side) * rnd(30, CFG.fieldX);
@@ -215,7 +215,7 @@ export function createBattle() {
         u.ox = rnd(0.5, 2.5);
         u.tz = zc + rnd(-5, 5);
         u.z = zc + rnd(-10, 10);
-        u.x = front + sideDir(side) * rnd(18, 42);
+        u.x = front + sideDir(side) * rnd(18, 48);
         u.speed = rnd(9, 14);
       }
       if (opts.skulls) skullQ.push({ x: front, z: zc, n: opts.skulls });
@@ -247,7 +247,7 @@ export function createBattle() {
         const out = [];
         for (const [key, q] of map) {
           const x = front + key * bucket * CFG.priceScale;
-          if (Math.abs(x - front) > 55) continue;
+          if (Math.abs(x - front) > 74) continue;
           out.push({
             x, h: Math.min(16, 1.9 * Math.sqrt(q)), q, w: wWidth,
             lvl: price + key * bucket,
