@@ -13,16 +13,19 @@ export function createCameraRig(camera, renderer, battle) {
   controls.maxDistance = 180;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.25;
-  // user grabs the camera → stop orbiting; resume after 15 idle minutes
+  // Page load: orbiting by default. Any interaction stops it — permanently,
+  // unless the AUTO ORBIT option is on, which resumes after 30s idle.
   let idleTimer = 0;
+  let autoOrbitOpt = false;
+  const schedule = () => {
+    clearTimeout(idleTimer);
+    if (autoOrbitOpt) idleTimer = setTimeout(() => { controls.autoRotate = true; }, 30000);
+  };
   controls.addEventListener('start', () => {
     controls.autoRotate = false;
     clearTimeout(idleTimer);
   });
-  controls.addEventListener('end', () => {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { controls.autoRotate = true; }, 15 * 60 * 1000);
-  });
+  controls.addEventListener('end', schedule);
 
   let trauma = 0;
   const off = new THREE.Vector3();
@@ -36,6 +39,11 @@ export function createCameraRig(camera, renderer, battle) {
 
   return {
     addTrauma(v) { trauma = Math.min(1.2, trauma + v); },
+    setAutoOrbit(on) {
+      autoOrbitOpt = on;
+      if (on && !controls.autoRotate) schedule();
+      if (!on) clearTimeout(idleTimer);
+    },
     // seamless world rebase: move with everything else, no visible jump
     shiftX(dx) {
       camera.position.x += dx;

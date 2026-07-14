@@ -87,11 +87,13 @@ mode. No API keys, no backend — the entire app is static files.
 - **CLEAN MODE** — hides ladder/tape/hint for streaming, OBS overlays, clips.
 - **DAY/NIGHT** — battlefield lighting follows the real clock (deep night in
   the Asia overnight, brightest during the US session).
+- **AUTO ORBIT** — the camera orbits on load and stops when you grab it;
+  turn this on and it resumes after 30s idle.
 
 Also: live trade tape above the tug-of-war bar, "WHILE YOU WERE GONE" recap
-banner when you return to a backgrounded tab, camera auto-orbit that yields
-to you and resumes after 15 idle minutes, and ground numerals that flip to
-stay readable as you orbit.
+banner when you return to a backgrounded tab, a live tab title showing who's
+winning and the price (`Bulls 63.8k`), and ground numerals that flip to stay
+readable as you orbit.
 
 ## Run locally
 

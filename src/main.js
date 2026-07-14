@@ -119,10 +119,16 @@ for (const [ms, side, zoff] of INTRO) {
 
 audio.setListener(() => rig.controls.target.x);
 let dayNightOn = true;
+let autoOrbitOn = false;
 hud.onOptions((key) => {
   if (key === 'sound') { audio.setMuted(!audio.muted); return !audio.muted; }
   if (key === 'clean') return document.body.classList.toggle('clean');
   if (key === 'daynight') { dayNightOn = !dayNightOn; return dayNightOn; }
+  if (key === 'orbit') {
+    autoOrbitOn = !autoOrbitOn;
+    rig.setAutoOrbit(autoOrbitOn);
+    return autoOrbitOn;
+  }
   return false;
 });
 

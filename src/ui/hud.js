@@ -17,6 +17,7 @@ export function createHud() {
         <div class="fitem oitem" data-key="sound">SOUND <span class="ostate" id="os-sound">OFF</span></div>
         <div class="fitem oitem" data-key="clean">CLEAN MODE <span class="ostate" id="os-clean">OFF</span></div>
         <div class="fitem oitem" data-key="daynight">DAY/NIGHT <span class="ostate on" id="os-daynight">ON</span></div>
+        <div class="fitem oitem" data-key="orbit">AUTO ORBIT <span class="ostate" id="os-orbit">OFF</span></div>
       </div>
     </div>
     <div class="price-wrap">
