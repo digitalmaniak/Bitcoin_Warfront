@@ -12,6 +12,8 @@ export function createRuler(scene) {
   const group = new THREE.Group();
   scene.add(group);
   let built = false;
+  let flipped = false;
+  const labels = []; // numeral meshes — spun to stay readable while orbiting
 
   const mkLines = (prices, base, opacity) => {
     const pts = [];
@@ -45,6 +47,7 @@ export function createRuler(scene) {
   };
 
   function rebuild(base) {
+    labels.length = 0;
     for (const c of [...group.children]) {
       group.remove(c);
       if (c.geometry) c.geometry.dispose();
@@ -65,13 +68,22 @@ export function createRuler(scene) {
       const x = (p - base) * CFG.priceScale;
       for (const z of [-36.5, 36.5]) {
         const m = mkLabel(p);
-        m.rotation.x = -Math.PI / 2;
+        m.rotation.set(-Math.PI / 2, 0, flipped ? Math.PI : 0);
         m.position.set(x, 0.05, z);
         group.add(m);
+        labels.push(m);
       }
     }
     built = true;
   }
 
-  return { get built() { return built; }, rebuild };
+  // Keep numerals upright for the viewer: when the camera orbits to the far
+  // side of the field, spin the labels 180° in-plane.
+  function setFlip(f) {
+    if (f === flipped) return;
+    flipped = f;
+    for (const m of labels) m.rotation.set(-Math.PI / 2, 0, f ? Math.PI : 0);
+  }
+
+  return { get built() { return built; }, rebuild, setFlip };
 }

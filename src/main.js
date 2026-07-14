@@ -277,6 +277,7 @@ renderer.setAnimationLoop(() => {
   skulls.update(dt);
 
   rig.update(rdt, simT);
+  ruler.setFlip(camera.position.z < rig.controls.target.z); // numerals face the viewer
   setFront(battle.front);
 
   const decay = Math.exp(-rdt / 45);
