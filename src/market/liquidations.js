@@ -5,7 +5,7 @@
 // generated ONLY while the main feed is the simulator.
 //   onLiq({ side:'long'|'short', qty(BTC), price, notional(USD), ts })
 
-function mkWs(url, onFail, setup) {
+function mkWs(url, onFail, setup, onOpen) {
   let ws = null, opened = false, stopped = false, to = 0;
   const fail = (r) => {
     if (stopped) return;
@@ -17,7 +17,12 @@ function mkWs(url, onFail, setup) {
   try { ws = new WebSocket(url); }
   catch { setTimeout(() => fail('ctor'), 0); return { stop() { stopped = true; } }; }
   to = setTimeout(() => fail('timeout'), 8000);
-  ws.onopen = () => { opened = true; clearTimeout(to); setup(ws); };
+  ws.onopen = () => {
+    opened = true;
+    clearTimeout(to);
+    if (onOpen) onOpen();
+    setup(ws);
+  };
   ws.onerror = () => { if (!opened) fail('error'); };
   ws.onclose = () => fail(opened ? 'dropped' : 'closed');
   return {
@@ -28,8 +33,8 @@ function mkWs(url, onFail, setup) {
 }
 
 const CONNECTORS = {
-  binance(onLiq, onFail) {
-    const c = mkWs('wss://fstream.binance.com/ws/btcusdt@forceOrder', onFail, () => {});
+  binance(onLiq, onFail, onOpen) {
+    const c = mkWs('wss://fstream.binance.com/ws/btcusdt@forceOrder', onFail, () => {}, onOpen);
     c.onMessage((ev) => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       const o = m.o;
@@ -43,7 +48,7 @@ const CONNECTORS = {
     });
     return c;
   },
-  bybit(onLiq, onFail) {
+  bybit(onLiq, onFail, onOpen) {
     let ping = 0;
     const c = mkWs('wss://stream.bybit.com/v5/public/linear', (r, opened) => {
       clearInterval(ping);
@@ -51,7 +56,7 @@ const CONNECTORS = {
     }, (ws) => {
       ws.send(JSON.stringify({ op: 'subscribe', args: ['allLiquidation.BTCUSDT'] }));
       ping = setInterval(() => { try { ws.send(JSON.stringify({ op: 'ping' })); } catch { /* noop */ } }, 20000);
-    });
+    }, onOpen);
     c.onMessage((ev) => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       if (!m.topic || !m.topic.startsWith('allLiquidation') || !m.data) return;
@@ -66,13 +71,13 @@ const CONNECTORS = {
     });
     return c;
   },
-  okx(onLiq, onFail) {
+  okx(onLiq, onFail, onOpen) {
     const c = mkWs('wss://ws.okx.com:8443/ws/v5/public', onFail, (ws) => {
       ws.send(JSON.stringify({
         op: 'subscribe',
         args: [{ channel: 'liquidation-orders', instType: 'SWAP' }],
       }));
-    });
+    }, onOpen);
     c.onMessage((ev) => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       if (!m.data) return;
@@ -95,7 +100,8 @@ const CONNECTORS = {
 
 export function startLiquidations(onLiq, { isSim, getPrice }) {
   const chain = ['binance', 'bybit', 'okx'];
-  let idx = 0, current = null, done = false, retryT = 0, fakeT = 0;
+  let idx = 0, current = null, done = false, retryT = 0;
+  let live = false; // a real forced-order socket is open
 
   const gauss = () => {
     let u = 0, v = 0;
@@ -104,44 +110,51 @@ export function startLiquidations(onLiq, { isSim, getPrice }) {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   };
 
-  const startFake = () => {
-    clearInterval(fakeT);
-    fakeT = setInterval(() => {
-      if (done || !isSim() || Math.random() > 0.45) return;
-      const price = getPrice() || 60000;
-      const notional = Math.min(3e6, Math.max(2000, Math.exp(gauss() * 1.6 + 9.8)));
-      onLiq({
-        side: Math.random() < 0.5 ? 'long' : 'short',
-        qty: notional / price, price, notional, ts: Date.now(),
-      });
-    }, 9000);
-  };
-
   const next = () => {
     if (done) return;
     if (idx >= chain.length) {
-      // nothing reachable: synthetic while simulated; re-probe live in 3 min
-      startFake();
+      // nothing reachable (geo-blocking etc): re-probe live in 3 min;
+      // the ambient generator below covers the gap
       retryT = setTimeout(() => { idx = 0; next(); }, 180000);
       return;
     }
-    clearInterval(fakeT);
-    current = CONNECTORS[chain[idx++]](onLiq, (reason, opened) => {
-      current = null;
-      if (done) return;
-      if (opened) { // was live, then dropped: retry from the top shortly
-        idx = 0;
-        retryT = setTimeout(next, 3000);
-      } else next();
-    });
+    current = CONNECTORS[chain[idx++]](
+      onLiq,
+      (reason, opened) => {
+        current = null;
+        live = false;
+        if (done) return;
+        if (opened) { // was live, then dropped: retry from the top shortly
+          idx = 0;
+          retryT = setTimeout(next, 3000);
+        } else next();
+      },
+      () => { live = true; },
+    );
   };
+
+  // Ambient liquidations — only while NO real socket is open. On the
+  // simulator they keep the demo lively (~every 20s); on live data with the
+  // liquidation feeds geo-blocked they're a rare treat (~every 14 min,
+  // rarer than MOABs). The moment a real socket connects, these stop.
+  const ambientT = setInterval(() => {
+    if (done || live) return;
+    const price = getPrice();
+    if (!price) return;
+    if (Math.random() > (isSim() ? 0.45 : 0.012)) return;
+    const notional = Math.min(2.5e6, Math.max(3000, Math.exp(gauss() * 1.5 + 10.2)));
+    onLiq({
+      side: Math.random() < 0.5 ? 'long' : 'short',
+      qty: notional / price, price, notional, ts: Date.now(),
+    });
+  }, 10000);
 
   next();
   return {
     stop() {
       done = true;
       clearTimeout(retryT);
-      clearInterval(fakeT);
+      clearInterval(ambientT);
       current && current.stop();
     },
   };
