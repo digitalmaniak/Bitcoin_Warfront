@@ -361,7 +361,7 @@ window.addEventListener('keydown', (e) => {
 setInterval(() => {
   if (!lastPrice || !sessionOpen) return;
   const winner = lastPrice >= sessionOpen ? 'Bulls' : 'Bears';
-  document.title = `${winner} ${(lastPrice / 1000).toFixed(1)}k`;
+  document.title = `Warfront | ${winner} ${(lastPrice / 1000).toFixed(1)}k`;
 }, 5000);
 
 const clock = new THREE.Clock();
