@@ -36,6 +36,7 @@ export function createBattle() {
   }
 
   let price = 0, base = 0, front = 0;
+  let bestBid = 0, bestAsk = 0;
   const rebaseQ = []; // world-shift offsets, drained by the renderer
   const kills = [0, 0];          // kills[0] = bears slain by bulls
   const volEma = [1, 1];         // rolling aggression per side
@@ -139,6 +140,8 @@ export function createBattle() {
     get front() { return front; },
     get base() { return base; },
     get price() { return price; },
+    get bestBid() { return bestBid; },
+    get bestAsk() { return bestAsk; },
     get kills() { return kills; },
     get shake() { return shake; },
     get aggression() { return volEma; },
@@ -267,6 +270,8 @@ export function createBattle() {
 
     onDepth({ bids, asks }) {
       const mid = bids?.length && asks?.length ? (bids[0][0] + asks[0][0]) / 2 : 0;
+      if (bids?.length) bestBid = bids[0][0];
+      if (asks?.length) bestAsk = asks[0][0];
       if (!price && mid) this.setPrice(mid);
       if (!price) return;
       // Adaptive bucketing: live books are tight ($ spans vary wildly by

@@ -18,6 +18,15 @@ export function createHud() {
         <div class="fitem oitem" data-key="clean">CLEAN MODE <span class="ostate" id="os-clean">OFF</span></div>
         <div class="fitem oitem" data-key="daynight">DAY/NIGHT <span class="ostate on" id="os-daynight">ON</span></div>
         <div class="fitem oitem" data-key="orbit">AUTO ORBIT <span class="ostate" id="os-orbit">OFF</span></div>
+        <div class="fitem oitem" data-key="chart">CHART <span class="ostate on" id="os-chart">ON</span></div>
+        <div class="fitem holo-row">HOLO
+          <span class="tfs">
+            <button class="tf otf sel" data-tf="1D">1D</button>
+            <button class="tf otf" data-tf="1W">1W</button>
+            <button class="tf otf" data-tf="1M">1M</button>
+            <button class="tf otf" data-tf="1Y">1Y</button>
+          </span>
+        </div>
       </div>
     </div>
     <div class="price-wrap">
@@ -98,7 +107,7 @@ export function createHud() {
 
   // Tape: same open-then-auto-collapse behavior as the ladder
   const tape = document.getElementById('tape');
-  const tapeCollapse = setTimeout(() => tape.classList.add('collapsed'), 60000);
+  const tapeCollapse = setTimeout(() => tape.classList.add('collapsed'), 30000);
   document.getElementById('tape-head').addEventListener('click', () => {
     clearTimeout(tapeCollapse);
     tape.classList.toggle('collapsed');
@@ -160,6 +169,27 @@ export function createHud() {
           cb(item.dataset.src);
         });
       }
+    },
+    // timeframe buttons inside OPTIONS (control panel + holo chart together)
+    onHoloTf(cb) {
+      for (const btn of document.querySelectorAll('.otf')) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          cb(btn.dataset.tf);
+        });
+      }
+    },
+    setHoloTf(tf) {
+      for (const btn of document.querySelectorAll('.otf')) {
+        btn.classList.toggle('sel', btn.dataset.tf === tf);
+      }
+    },
+    // programmatic option state update (e.g., chart auto-hid itself)
+    setOption(key, on) {
+      const st = document.querySelector(`.oitem[data-key="${key}"] .ostate`);
+      if (!st) return;
+      st.textContent = on ? 'ON' : 'OFF';
+      st.classList.toggle('on', on);
     },
     // pulse a ladder row when its tier fires: 'grenade'|'tank'|'air'|'carpet'|'pot'
     flashTier(tier) {

@@ -26,6 +26,10 @@ invented — everything that explodes traces back to real traded volume.
 | Charges & casualties | Trades from the live tape, log-scaled vs the rolling average; every falling soldier is a counted kill delivered by a visible tracer |
 | Battle rounds | 1-minute candles — body = ground gained/lost, banner every close |
 | "WALL BREACHED" | A large depth wall eaten as price crossed it |
+| Holo chart | Real BTC candles (1D/1W/1M/1Y) floating above the frontline rod — time along the rod, price vertical, live tick at the end. Mirrors so time reads left→right from either side |
+| HIGH / LOW flags | Session extremes standing at their true prices on the ruler |
+| Spread lines | Best bid and ask hugging the rod — the gap between armies IS the spread |
+| Volume profile ridge | Traded volume builds terrain along the back edge per $10 bucket; the point of control (POC) glows orange |
 | ⚡ Execution beams | **Real forced liquidations** — a liquidated long means bull soldiers behind their own lines get a cold beam of light and dissolve. Scaled by notional ($100k+ gets a banner, $1M+ slow-mo); 3 in 5s = "LIQUIDATION CASCADE" |
 
 ## Escalation ladder
@@ -89,11 +93,14 @@ mode. No API keys, no backend — the entire app is static files.
   the Asia overnight, brightest during the US session).
 - **AUTO ORBIT** — the camera orbits on load and stops when you grab it;
   turn this on and it resumes after 30s idle.
+- **CHART / HOLO** — toggle the 2D candle panel, and switch the shared
+  timeframe (1D/1W/1M/1Y) for both the panel and the in-world holo chart.
 
-Also: live trade tape above the tug-of-war bar, "WHILE YOU WERE GONE" recap
-banner when you return to a backgrounded tab, a live tab title showing who's
-winning and the price (`Bulls 63.8k`), and ground numerals that flip to stay
-readable as you orbit.
+Also: a bottom-left candle chart panel (public REST candles, auto-slides away
+after 30s like the tape; the ladder folds at 10s), live trade tape,
+"WHILE YOU WERE GONE" recap banner when you return to a backgrounded tab,
+a live tab title showing who's winning and the price (`Bulls 63.8k`), and
+ground numerals that flip to stay readable as you orbit.
 
 ## Run locally
 
@@ -122,17 +129,18 @@ node test/liq-test.js       # executions: right side, right place, honest counte
 ```
 src/
   market/    feed.js (auto-fallback + reconnect), adapters/ (binance,
-             bitstamp, coinbase, fake), liquidations.js, candles.js,
-             normalize.js
+             bitstamp, coinbase, fake), liquidations.js, klines.js,
+             candles.js, normalize.js
   core/      bus.js — event bus between sim and FX
   sim/       battle.js (pure JS war sim — unit-testable, no three.js),
              arsenal.js (escalation ladder), artillery.js (ordnance pot)
   render/    scene.js, armies.js (instanced mechs), walls.js, ruler.js,
-             camera.js (trauma + bomb cam), postfx.js (bloom + auto quality),
-             effects.js (skulls), fx/ (tracers, explosions, grenades),
-             units/ (tank, jet, heli)
+             holochart.js, markers.js, profile.js, camera.js (trauma +
+             bomb cam), postfx.js (bloom + auto quality), effects.js,
+             fx/ (tracers, explosions, grenades, beams), units/ (tank,
+             jet, heli)
   audio/     sound.js — synthesized, positional
-  ui/        hud.js
+  ui/        hud.js, chart.js
 test/        seven headless test suites
 ```
 

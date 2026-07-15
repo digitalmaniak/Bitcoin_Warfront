@@ -20,6 +20,10 @@ import { createJets } from './render/units/jet.js';
 import { createHelis } from './render/units/heli.js';
 import { createCameraRig } from './render/camera.js';
 import { createRuler } from './render/ruler.js';
+import { createHoloChart } from './render/holochart.js';
+import { createMarkers } from './render/markers.js';
+import { createProfile } from './render/profile.js';
+import { createChart } from './ui/chart.js';
 import { createPostFX } from './render/postfx.js';
 import { createAudio } from './audio/sound.js';
 import { createHud } from './ui/hud.js';
@@ -44,6 +48,15 @@ const tanks = createTanks(scene, battle, explosions, (x) => audio.explosion(0.7,
 const helis = createHelis(scene, battle, explosions, (x) => audio.explosion(0.6, x));
 const rig = createCameraRig(camera, renderer, battle);
 const ruler = createRuler(scene);
+const holo = createHoloChart(scene);
+const markers = createMarkers(scene);
+const profile = createProfile(scene);
+const chart = createChart(
+  (closes) => holo.setData(closes),
+  (tf) => hud.setHoloTf(tf),
+  (visible) => hud.setOption('chart', visible),
+);
+hud.onHoloTf((tf) => chart.setTf(tf));
 const postfx = createPostFX(renderer, scene, camera);
 
 // slow-mo state (carpet bombs)
@@ -129,6 +142,7 @@ hud.onOptions((key) => {
     rig.setAutoOrbit(autoOrbitOn);
     return autoOrbitOn;
   }
+  if (key === 'chart') return chart.setVisible(!chart.visible);
   return false;
 });
 
@@ -144,6 +158,7 @@ let lastPrice = 0;
 let sessionOpen = 0;
 let lastFeedName = '';
 let feedIsSim = false; // must exist before the first feed status event
+let sessHi = 0, sessLo = 0; // session market structure
 let buyV = 0, sellV = 0;
 let round = 1;
 
@@ -167,8 +182,11 @@ const candles = createCandles((c) => {
 function handleEvent(type, d) {
   if (type === 'trade') {
     if (!Number.isFinite(d.price) || !Number.isFinite(d.qty) || d.qty <= 0) return;
-    if (!sessionOpen) sessionOpen = d.price;
+    if (!sessionOpen) { sessionOpen = d.price; sessHi = d.price; sessLo = d.price; }
     lastPrice = d.price;
+    profile.add(d.price, d.qty);
+    if (d.price > sessHi) sessHi = d.price;
+    if (d.price < sessLo) sessLo = d.price;
     battle.setPrice(d.price);
     norm.add(d.qty);
     candles.add(d);
@@ -180,6 +198,7 @@ function handleEvent(type, d) {
       if (res.whale) away.whales++;
     }
     if (d.side === 'buy') buyV += d.qty; else sellV += d.qty;
+    chart.setLive(d.price);
     hud.tapeTrade(d.side, d.qty, d.price, res.r >= TIERS.GRENADE);
     if (res.moab) {
       // MOAB alert handled by the bus handler
@@ -194,7 +213,11 @@ function handleEvent(type, d) {
     // source changed → re-baseline the session % (prices differ per source,
     // and live↔simulated jumps would otherwise show nonsense like +87%)
     if (!d.name.startsWith('CONNECTING') && d.name !== lastFeedName) {
-      if (lastFeedName) sessionOpen = 0;
+      if (lastFeedName) { // source changed → re-baseline session structure
+        sessionOpen = 0;
+        sessHi = 0; sessLo = 0;
+        profile.reset();
+      }
       lastFeedName = d.name;
     }
     feedIsSim = !!d.sim;
@@ -371,6 +394,16 @@ renderer.setAnimationLoop(() => {
   skulls.update(dt);
 
   rig.update(rdt, simT);
+  holo.update(battle.front, camera.position.x > battle.front); // time reads L→R
+  markers.update({
+    front: battle.front,
+    price: battle.price,
+    hi: sessHi,
+    lo: sessLo,
+    bid: battle.bestBid,
+    ask: battle.bestAsk,
+  });
+  profile.update(battle.front, battle.price);
   ruler.setFlip(camera.position.z < rig.controls.target.z); // numerals face the viewer
   setFront(battle.front);
   setDayNight(dayNightOn ? dayCurve() : 0.65);
