@@ -23,10 +23,12 @@ import { createRuler } from './render/ruler.js';
 import { createHoloChart } from './render/holochart.js';
 import { createMarkers } from './render/markers.js';
 import { createProfile } from './render/profile.js';
+import { createGhosts } from './render/ghosts.js';
 import { createChart } from './ui/chart.js';
 import { createPostFX } from './render/postfx.js';
 import { createAudio } from './audio/sound.js';
 import { createHud } from './ui/hud.js';
+import { createReport } from './ui/report.js';
 
 const hud = createHud();
 const { renderer, scene, camera, setFront, setDayNight } = createScene();
@@ -51,12 +53,21 @@ const ruler = createRuler(scene);
 const holo = createHoloChart(scene);
 const markers = createMarkers(scene);
 const profile = createProfile(scene);
+const ghosts = createGhosts(scene);
 const chart = createChart(
   (closes) => holo.setData(closes),
   (tf) => hud.setHoloTf(tf),
   (visible) => hud.setOption('chart', visible),
 );
 hud.onHoloTf((tf) => chart.setTf(tf));
+
+const report = createReport();
+hud.onReport(() => report.open({
+  price: lastPrice, open: sessionOpen, hi: sessHi, lo: sessLo,
+  kills: battle.kills, poc: profile.poc,
+  elapsedMs: Date.now() - sess.start,
+  ...sess,
+}));
 const postfx = createPostFX(renderer, scene, camera);
 
 // slow-mo state (carpet bombs)
@@ -159,6 +170,24 @@ let sessionOpen = 0;
 let lastFeedName = '';
 let feedIsSim = false; // must exist before the first feed status event
 let sessHi = 0, sessLo = 0; // session market structure
+const sess = { // war-report stats
+  start: Date.now(), biggestQty: 0, biggestSide: '',
+  buyVol: 0, sellVol: 0, liqLong: 0, liqShort: 0, liqCount: 0,
+  bloodV: 0, bloodRound: 0, hist: [],
+};
+function resetSess() {
+  sess.start = Date.now();
+  sess.biggestQty = 0; sess.biggestSide = '';
+  sess.buyVol = 0; sess.sellVol = 0;
+  sess.liqLong = 0; sess.liqShort = 0; sess.liqCount = 0;
+  sess.bloodV = 0; sess.bloodRound = 0;
+  sess.hist.length = 0;
+}
+setInterval(() => { // session sparkline samples (every 5s, ~1h window)
+  if (!lastPrice) return;
+  sess.hist.push(lastPrice);
+  if (sess.hist.length > 720) sess.hist.shift();
+}, 5000);
 let buyV = 0, sellV = 0;
 let round = 1;
 
@@ -166,6 +195,7 @@ let bannerLockUntil = 0; // "while you were gone" gets banner priority
 
 const candles = createCandles((c) => {
   round = c.round + 1;
+  if (c.v > sess.bloodV) { sess.bloodV = c.v; sess.bloodRound = c.round; }
   if (Date.now() < bannerLockUntil) return; // don't stomp the return banner
   const d = c.c - c.o;
   if (Math.abs(d) > 1500) return; // feed-switch artifact, not a real candle
@@ -187,6 +217,8 @@ function handleEvent(type, d) {
     profile.add(d.price, d.qty);
     if (d.price > sessHi) sessHi = d.price;
     if (d.price < sessLo) sessLo = d.price;
+    if (d.side === 'buy') sess.buyVol += d.qty; else sess.sellVol += d.qty;
+    if (d.qty > sess.biggestQty) { sess.biggestQty = d.qty; sess.biggestSide = d.side; }
     battle.setPrice(d.price);
     norm.add(d.qty);
     candles.add(d);
@@ -217,6 +249,7 @@ function handleEvent(type, d) {
         sessionOpen = 0;
         sessHi = 0; sessLo = 0;
         profile.reset();
+        resetSess();
       }
       lastFeedName = d.name;
     }
@@ -245,6 +278,8 @@ function onLiq(liq) {
   for (const p of spots) beams.spawn(p.x, p.z, vSide);
   audio.zap(battle.front, N >= 100000);
   hud.tapeLiq(liq.side, liq.qty, N);
+  sess.liqCount++;
+  if (liq.side === 'long') sess.liqLong += N; else sess.liqShort += N;
 
   if (N >= 100000 && Date.now() >= bannerLockUntil) {
     hud.banner(
@@ -382,6 +417,7 @@ renderer.setAnimationLoop(() => {
     ruler.rebuild(battle.base);
   }
 
+  for (const g of battle.ghostQ.splice(0)) ghosts.spawn(g);
   for (const s of battle.skullQ.splice(0)) skulls.spawn(s.x, s.z, s.n);
   for (const b of battle.breachQ.splice(0)) {
     hud.banner(
@@ -404,6 +440,7 @@ renderer.setAnimationLoop(() => {
     ask: battle.bestAsk,
   });
   profile.update(battle.front, battle.price);
+  ghosts.update(dt, battle.front, battle.price);
   ruler.setFlip(camera.position.z < rig.controls.target.z); // numerals face the viewer
   setFront(battle.front);
   setDayNight(dayNightOn ? dayCurve() : 0.65);

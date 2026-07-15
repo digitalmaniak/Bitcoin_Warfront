@@ -62,6 +62,14 @@
       transition:max-height .5s ease,opacity .4s ease;}
     .chart-panel.collapsed .chart-body{max-height:0;opacity:0;}
     @media (max-width:900px){.chart-panel{display:none;}}
+
+    .report-overlay{position:fixed;inset:0;background:rgba(5,5,8,.78);display:none;
+      align-items:center;justify-content:center;z-index:60;pointer-events:auto;}
+    .report-overlay.show{display:flex;}
+    .report-box{background:#0d0d12;border:1px solid #333;border-radius:10px;padding:14px;}
+    .report-box canvas{width:min(760px,86vw);height:auto;display:block;border-radius:6px;}
+    .report-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
+    .report-btns .tf{font-size:12px;padding:5px 12px;}
     .dot{width:8px;height:8px;border-radius:50%;background:#666;flex:none;}
     .dot.live{background:#2ecc71;box-shadow:0 0 8px #2ecc71;}
     .dot.sim{background:#f39c12;box-shadow:0 0 8px #f39c12;}

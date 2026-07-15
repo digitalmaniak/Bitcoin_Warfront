@@ -43,6 +43,9 @@ export function createBattle() {
   const skullQ = [];             // {x, z, n} drained by effects
   const shotQ = [];              // {side, x, z, t} kill-tracers for the renderer
   const breachQ = [];            // {side:'bid'|'ask'} wall-breach events
+  const ghostQ = [];             // {lvl, h, w, side} pulled-wall ghosts (spoofs)
+  const prevWalls = { bid: new Map(), ask: new Map() }; // lvl → h snapshot
+  const ghostCool = new Map();   // lvl → last ghost time
   let shake = 0;
   const walls = { bid: [], ask: [] }; // {x, h, q, lvl}
   const prevMax = { bid: null, ask: null };
@@ -136,7 +139,7 @@ export function createBattle() {
   }
 
   return {
-    units, walls, skullQ, breachQ, rebaseQ, shotQ, CFG,
+    units, walls, skullQ, breachQ, rebaseQ, shotQ, ghostQ, CFG,
     get front() { return front; },
     get base() { return base; },
     get price() { return price; },
@@ -306,6 +309,30 @@ export function createBattle() {
       };
       walls.bid = bucketize(bids || []);
       walls.ask = bucketize(asks || []);
+
+      // Spoof detection: a big wall that VANISHES while price is far away
+      // can't have been eaten — it was pulled. Leave a ghost where it stood.
+      const now = Date.now();
+      for (const side of ['bid', 'ask']) {
+        const prev = prevWalls[side];
+        const cur = new Map();
+        for (const w of walls[side]) {
+          const key = Math.round(w.lvl / 10) * 10;
+          cur.set(key, Math.max(cur.get(key) || 0, w.h));
+        }
+        for (const [key, ph] of prev) {
+          if (ph < 8) continue;                       // only significant walls
+          const nh = Math.max(cur.get(key) || 0, cur.get(key - 10) || 0, cur.get(key + 10) || 0);
+          if (nh > ph * 0.4) continue;                // still standing
+          if (Math.abs(price - key) < 25) continue;   // near the action → eaten, not pulled
+          if (now - (ghostCool.get(key) || 0) < 30000) continue;
+          ghostCool.set(key, now);
+          if (ghostQ.length < 8) {
+            ghostQ.push({ lvl: key, h: ph, w: bucket * CFG.priceScale * 0.9, side });
+          }
+        }
+        prevWalls[side] = cur;
+      }
 
       // Wall-breach detection: a big wall got eaten while price crossed it.
       for (const side of ['bid', 'ask']) {

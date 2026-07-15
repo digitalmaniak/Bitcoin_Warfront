@@ -19,6 +19,7 @@ export function createHud() {
         <div class="fitem oitem" data-key="daynight">DAY/NIGHT <span class="ostate on" id="os-daynight">ON</span></div>
         <div class="fitem oitem" data-key="orbit">AUTO ORBIT <span class="ostate" id="os-orbit">OFF</span></div>
         <div class="fitem oitem" data-key="chart">CHART <span class="ostate on" id="os-chart">ON</span></div>
+        <div class="fitem oaction" id="opt-report">WAR REPORT <span class="ostate">»</span></div>
         <div class="fitem holo-row">HOLO
           <span class="tfs">
             <button class="tf otf sel" data-tf="1D">1D</button>
@@ -169,6 +170,13 @@ export function createHud() {
           cb(item.dataset.src);
         });
       }
+    },
+    onReport(cb) {
+      document.getElementById('opt-report').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('opts').classList.remove('open');
+        cb();
+      });
     },
     // timeframe buttons inside OPTIONS (control panel + holo chart together)
     onHoloTf(cb) {

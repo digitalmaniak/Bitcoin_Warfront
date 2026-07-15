@@ -48,6 +48,7 @@ export function createProfile(scene) {
   const dummy = new THREE.Object3D();
 
   return {
+    get poc() { return poc; },
     add(price, qty) {
       const b = Math.round(price / BUCKET) * BUCKET;
       const v = (vols.get(b) || 0) + qty;
