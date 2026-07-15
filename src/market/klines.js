@@ -43,6 +43,32 @@ const SOURCES = {
   },
 };
 
+// 24h day stats (rolling trading day) — same fallback philosophy
+const DAY_SOURCES = {
+  async binance() {
+    const r = await getJson('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+    return { hi: +r.highPrice, lo: +r.lowPrice };
+  },
+  async coinbase() {
+    const r = await getJson('https://api.exchange.coinbase.com/products/BTC-USD/stats');
+    return { hi: +r.high, lo: +r.low };
+  },
+  async bitstamp() {
+    const r = await getJson('https://www.bitstamp.net/api/v2/ticker/btcusd/');
+    return { hi: +r.high, lo: +r.low };
+  },
+};
+
+export async function fetchDayStats() {
+  for (const name of ['binance', 'coinbase', 'bitstamp']) {
+    try {
+      const s = await DAY_SOURCES[name]();
+      if (s.hi > 0 && s.lo > 0) return s;
+    } catch { /* try the next source */ }
+  }
+  return null;
+}
+
 export async function fetchKlines(tf) {
   for (const name of ['binance', 'coinbase', 'bitstamp']) {
     try {

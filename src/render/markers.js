@@ -47,6 +47,7 @@ function mkLabel(scene, text, color) {
 
 export function createMarkers(scene) {
   // kept minimal on purpose: HIGH/LOW flags plus the unlabeled spread lines
+  // (when hi/lo are beyond the field, the HUD shows screen-edge chips)
   const M = {
     hi: { line: mkLine(scene, 0x2ecc71, 0.08, 0.28), label: mkLabel(scene, 'HIGH', '#5fe89e') },
     lo: { line: mkLine(scene, 0xe74c3c, 0.08, 0.28), label: mkLabel(scene, 'LOW', '#ff8a75') },

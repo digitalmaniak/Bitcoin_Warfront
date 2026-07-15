@@ -169,7 +169,8 @@ let lastPrice = 0;
 let sessionOpen = 0;
 let lastFeedName = '';
 let feedIsSim = false; // must exist before the first feed status event
-let sessHi = 0, sessLo = 0; // session market structure
+let sessHi = 0, sessLo = 0; // session extremes (war report)
+let dayHi = 0, dayLo = 0;   // true trading-day extremes (field markers)
 const sess = { // war-report stats
   start: Date.now(), biggestQty: 0, biggestSide: '',
   buyVol: 0, sellVol: 0, liqLong: 0, liqShort: 0, liqCount: 0,
@@ -192,6 +193,17 @@ let buyV = 0, sellV = 0;
 let round = 1;
 
 let bannerLockUntil = 0; // "while you were gone" gets banner priority
+
+// real daily high/low from exchange 24h stats, refreshed every minute;
+// live trades extend them between refreshes
+import('./market/klines.js').then(({ fetchDayStats }) => {
+  const refresh = async () => {
+    const s = await fetchDayStats();
+    if (s) { dayHi = s.hi; dayLo = s.lo; }
+  };
+  refresh();
+  setInterval(refresh, 60000);
+});
 
 const candles = createCandles((c) => {
   round = c.round + 1;
@@ -217,6 +229,8 @@ function handleEvent(type, d) {
     profile.add(d.price, d.qty);
     if (d.price > sessHi) sessHi = d.price;
     if (d.price < sessLo) sessLo = d.price;
+    if (!feedIsSim && dayHi && d.price > dayHi) dayHi = d.price;
+    if (!feedIsSim && dayLo && d.price < dayLo) dayLo = d.price;
     if (d.side === 'buy') sess.buyVol += d.qty; else sess.sellVol += d.qty;
     if (d.qty > sess.biggestQty) { sess.biggestQty = d.qty; sess.biggestSide = d.side; }
     battle.setPrice(d.price);
@@ -434,13 +448,28 @@ renderer.setAnimationLoop(() => {
   markers.update({
     front: battle.front,
     price: battle.price,
-    hi: sessHi,
-    lo: sessLo,
+    // real trading-day extremes on live data; session extremes make more
+    // sense (and are the only coherent option) on the simulator
+    hi: feedIsSim ? sessHi : dayHi,
+    lo: feedIsSim ? sessLo : dayLo,
     bid: battle.bestBid,
     ask: battle.bestAsk,
   });
   profile.update(battle.front, battle.price);
   ghosts.update(dt, battle.front, battle.price);
+
+  // screen-edge chips when the day's extremes are beyond the field
+  {
+    const S = battle.CFG.priceScale;
+    const hiV = feedIsSim ? sessHi : dayHi;
+    const loV = feedIsSim ? sessLo : dayLo;
+    const off = (v) => v && battle.price && Math.abs(v - battle.price) * S > 78;
+    hud.setEdges(
+      off(loV) ? loV : null,
+      off(hiV) ? hiV : null,
+      camera.position.z < rig.controls.target.z, // same flip as the ruler
+    );
+  }
   ruler.setFlip(camera.position.z < rig.controls.target.z); // numerals face the viewer
   setFront(battle.front);
   setDayNight(dayNightOn ? dayCurve() : 0.65);

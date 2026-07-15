@@ -106,6 +106,14 @@
     #whale.show{opacity:1;}
 
     .hint{position:absolute;bottom:8px;right:12px;font-size:10px;color:#3c3c46;letter-spacing:1px;}
+    .edge-flag{position:absolute;top:176px;font-size:13px;
+      font-weight:700;letter-spacing:1px;opacity:0;transition:opacity .4s;
+      text-shadow:0 1px 8px rgba(0,0,0,.9);pointer-events:none;}
+    .edge-flag.show{opacity:.9;}
+    #edge-lo{left:18px;}
+    #edge-hi{right:18px;text-align:right;}
+    .edge-flag.lo{color:#ff8a75;}
+    .edge-flag.hi{color:#5fe89e;}
 
     #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40;}
     .tape{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);width:380px;

@@ -74,6 +74,8 @@ export function createHud() {
     <div id="whale"></div>
     <div id="banner"></div>
     <div id="flash"></div>
+    <div class="edge-flag" id="edge-lo"></div>
+    <div class="edge-flag" id="edge-hi"></div>
     <div class="tape" id="tape">
       <div class="tape-head" id="tape-head"><span>LIVE TAPE</span><span id="tape-arrow">▾</span></div>
       <div id="tape-body"></div>
@@ -92,6 +94,7 @@ export function createHud() {
     banner: $('banner'), whale: $('whale'),
     potB: $('pot-b'), potR: $('pot-r'),
     flash: $('flash'), tapeBody: $('tape-body'),
+    edgeLo: $('edge-lo'), edgeHi: $('edge-hi'),
   };
   let bannerT = 0, whaleT = 0;
   const flashT = {};
@@ -170,6 +173,19 @@ export function createHud() {
           cb(item.dataset.src);
         });
       }
+    },
+    // screen-edge chips for the day's high/low when they're beyond the
+    // visible field; pass null to hide. flip=true when the camera faces the
+    // other way (higher prices on the screen's left) — chips swap sides so
+    // they always point toward where the level actually lies.
+    setEdges(lo, hi, flip) {
+      const left = flip ? { v: hi, name: 'HIGH', cls: 'hi' } : { v: lo, name: 'LOW', cls: 'lo' };
+      const right = flip ? { v: lo, name: 'LOW', cls: 'lo' } : { v: hi, name: 'HIGH', cls: 'hi' };
+      const fmt = (v) => `$${(v / 1000).toFixed(1)}k`;
+      el.edgeLo.textContent = left.v ? `◀ ${left.name} ${fmt(left.v)}` : '';
+      el.edgeLo.className = `edge-flag ${left.cls}${left.v ? ' show' : ''}`;
+      el.edgeHi.textContent = right.v ? `${right.name} ${fmt(right.v)} ▶` : '';
+      el.edgeHi.className = `edge-flag ${right.cls}${right.v ? ' show' : ''}`;
     },
     onReport(cb) {
       document.getElementById('opt-report').addEventListener('click', (e) => {
