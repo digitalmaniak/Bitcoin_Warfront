@@ -30,6 +30,7 @@ invented — everything that explodes traces back to real traded volume.
 | HIGH / LOW flags | Session extremes standing at their true prices on the ruler |
 | Spread lines | Best bid and ask hugging the rod — the gap between armies IS the spread |
 | Volume profile ridge | Traded volume builds terrain along the back edge per $10 bucket; the point of control (POC) glows orange |
+| Depth ghosts | A big wall that vanishes with price far away was **pulled, not eaten** — a wireframe ghost fades where it stood. Spoofing, made visible |
 | ⚡ Execution beams | **Real forced liquidations** — a liquidated long means bull soldiers behind their own lines get a cold beam of light and dissolve. Scaled by notional ($100k+ gets a banner, $1M+ slow-mo); 3 in 5s = "LIQUIDATION CASCADE" |
 
 ## Escalation ladder
@@ -95,6 +96,8 @@ mode. No API keys, no backend — the entire app is static files.
   turn this on and it resumes after 30s idle.
 - **CHART / HOLO** — toggle the 2D candle panel, and switch the shared
   timeframe (1D/1W/1M/1Y) for both the panel and the in-world holo chart.
+- **WAR REPORT** — a shareable 16:9 stat card (kills, volume, liquidations,
+  biggest whale, bloodiest round, POC, session sparkline) with PNG download.
 
 Also: a bottom-left candle chart panel (public REST candles, auto-slides away
 after 30s like the tape; the ladder folds at 10s), live trade tape,
@@ -161,7 +164,7 @@ only volume that actually traded, just on a randomized schedule.
 ## Roadmap
 
 - [x] Liquidation feed — forced liquidations as battlefield executions
-- [ ] War report card — shareable hourly stats (kills, biggest whale, ground)
+- [x] War report card — shareable session stats with PNG export
 - [ ] Historic battle replays (COVID crash, ETF day)
 - [ ] Multi-asset theaters (ETH front)
 - [ ] Model-pack skin swap for units
