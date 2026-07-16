@@ -50,6 +50,12 @@ export function createCameraRig(camera, renderer, battle) {
       controls.target.x += dx;
       if (bombRef) { savedPos.x += dx; savedTgt.x += dx; }
     },
+    // instantly center on x (redeploy) — preserves the user's orbit angle
+    snapX(x) {
+      const dx = x - controls.target.x;
+      controls.target.x += dx;
+      camera.position.x += dx;
+    },
     bombCam(ms) {
       if (!bombRef) {
         camera.position.sub(off);

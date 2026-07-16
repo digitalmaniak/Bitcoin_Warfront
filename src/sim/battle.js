@@ -245,6 +245,36 @@ export function createBattle() {
       price = p;
     },
 
+    // Instantly re-center the world on the current price (skips the tween).
+    // Returns the world shift so the caller can move FX + camera in sync.
+    snapFront() {
+      const dx = -(price - base) * CFG.priceScale;
+      if (Math.abs(dx) < 0.01) return 0;
+      base = price;
+      front = 0;
+      for (const u of units) if (u.alive && u.state === STATE.DEAD) u.x += dx;
+      for (const side of ['bid', 'ask']) for (const w of walls[side]) w.x += dx;
+      for (const s of skullQ) s.x += dx;
+      return dx;
+    },
+
+    // Paratroop the living armies to their correct posts: everyone teleports
+    // to the sky above where they SHOULD be and drops in (bounce on landing).
+    redeploy() {
+      for (const u of units) {
+        if (!u.alive || u.state === STATE.DEAD) continue;
+        const dir = sideDir(u.side);
+        u.charge = false;
+        u.tz = Math.max(-CFG.fieldZ, Math.min(CFG.fieldZ, u.tz));
+        u.z = u.tz + rnd(-2, 2);
+        u.x = front + dir * u.ox;
+        u.y = rnd(20, 44); // higher = lands later → natural stagger
+        u.vy = rnd(-4, 0);
+        u.kx = 0; u.kz = 0; u.stun = 0;
+        if (u.state === STATE.FIGHT) u.state = STATE.MARCH;
+      }
+    },
+
     // side: 0 buy / 1 sell. n: soldier count. opts: {whale, skulls}
     onTrade(side, n, opts = {}) {
       const zc = rnd(-CFG.fieldZ + 6, CFG.fieldZ - 6);
@@ -408,6 +438,16 @@ export function createBattle() {
             u.x = front + 1.2;
             if (u.kx < 0) u.kx = 0;
           }
+        }
+
+        if (u.y > 0 || u.vy !== 0) { // airborne (redeploy drop): fall + bounce
+          u.vy -= GRAV * dt;
+          u.y += u.vy * dt;
+          if (u.y <= 0) {
+            if (u.vy < -3.5) { u.y = 0; u.vy = -u.vy * 0.32; } // bounce
+            else { u.y = 0; u.vy = 0; }                        // settled
+          }
+          continue;
         }
 
         if (u.state === STATE.DOOMED) { // hit registered, falls when shot lands

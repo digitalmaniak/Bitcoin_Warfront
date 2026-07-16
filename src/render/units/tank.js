@@ -38,7 +38,10 @@ export function createTanks(scene, battle, explosions, onFire) {
       const m = new THREE.Mesh(geo, mats[side]);
       m.scale.setScalar(2);
       m.visible = false; scene.add(m);
-      pool.push({ m, side, active: false, x: 0, z: 0, state: 'in', fireT: 0, life: 0, recoil: 0 });
+      pool.push({
+        m, side, active: false, x: 0, z: 0, state: 'in',
+        fireT: 0, life: 0, recoil: 0, y: 0, vy: 0,
+      });
     }
   }
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -52,13 +55,26 @@ export function createTanks(scene, battle, explosions, onFire) {
       t.active = true; t.state = 'in';
       t.z = rnd(-20, 20);
       t.x = battle.front + dir * 62;
-      t.life = 40; t.fireT = 1.5; t.recoil = 0;
+      t.life = 40; t.fireT = 1.5; t.recoil = 0; t.y = 0; t.vy = 0;
       t.m.rotation.y = side === 0 ? 0 : Math.PI; // barrel faces the enemy
       t.m.visible = true;
     },
 
     shiftX(dx) {
       for (const t of pool) if (t.active) t.x += dx;
+    },
+
+    // air-drop active tanks onto their correct posts (redeploy)
+    redeploy() {
+      const f = battle.front;
+      for (const t of pool) {
+        if (!t.active || t.state === 'out') continue;
+        t.x = f + dirOf(t.side) * 15;
+        t.state = 'hold';
+        t.fireT = Math.max(t.fireT, 1.5);
+        t.y = rnd(16, 28);
+        t.vy = 0;
+      }
     },
 
     // enemy ordnance landed at (x,z) — destroy tanks caught in the blast
@@ -77,6 +93,16 @@ export function createTanks(scene, battle, explosions, onFire) {
       for (const t of pool) {
         if (!t.active) continue;
         const dir = dirOf(t.side);
+        if (t.y > 0 || t.vy !== 0) { // dropping in: heavy fall, small bounce
+          t.vy -= 26 * dt;
+          t.y += t.vy * dt;
+          if (t.y <= 0) {
+            if (t.vy < -5) { t.y = 0; t.vy = -t.vy * 0.2; }
+            else { t.y = 0; t.vy = 0; }
+          }
+          t.m.position.set(t.x, t.y, t.z);
+          continue;
+        }
         if (t.state === 'in') {
           const tx = f + dir * 15;
           t.x += Math.sign(tx - t.x) * Math.min(17 * dt, Math.abs(tx - t.x));

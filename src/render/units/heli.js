@@ -67,6 +67,14 @@ export function createHelis(scene, battle, explosions, onFire) {
     shiftX(dx) {
       for (const h of pool) if (h.active) h.x += dx;
     },
+    // helis are already airborne — just snap to the correct hover point
+    redeploy() {
+      for (const h of pool) {
+        if (!h.active) continue;
+        h.x = battle.front + dirOf(h.side) * 10;
+        if (h.state === 'in') h.state = 'hover';
+      }
+    },
     update(dt) {
       const f = battle.front;
       for (const h of pool) {

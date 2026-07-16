@@ -336,6 +336,22 @@ document.addEventListener('visibilitychange', () => {
   away = null;
   if (secs < 5 || !snap.price || !lastPrice) return;
   const d = lastPrice - snap.price;
+
+  // big move while away → REDEPLOY: snap the world to the current price,
+  // paratroop the armies in over their correct posts, center the camera
+  if (Math.abs(d) * battle.CFG.priceScale > 30) {
+    const dx = battle.snapFront();
+    if (dx) {
+      explosions.shiftX(dx); tracers.shiftX(dx); grenades.shiftX(dx);
+      tanks.shiftX(dx); jets.shiftX(dx); helis.shiftX(dx);
+      beams.shiftX(dx); skulls.shiftX(dx); rig.shiftX(dx);
+      ruler.rebuild(battle.base);
+    }
+    battle.redeploy();
+    tanks.redeploy();
+    helis.redeploy();
+    rig.snapX(battle.front);
+  }
   const cls = Math.abs(d) < 1 ? 'flat' : d > 0 ? 'bulls' : 'bears';
   const parts = [`${d >= 0 ? '+' : '−'}$${Math.abs(d).toFixed(0)}`];
   if (snap.v > 0) parts.push(`${snap.v.toFixed(1)} BTC TRADED`);

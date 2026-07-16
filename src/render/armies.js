@@ -66,6 +66,9 @@ export function createArmies(scene, battle) {
           dummy.rotation.set(0, yaw, dir * Math.min(1, k * 2.2) * (Math.PI / 2));
           dummy.position.y = -1.7 * Math.max(0, (k - 0.55) / 0.45);
         }
+      } else if (u.y > 0.02) { // dropping in from the sky (redeploy)
+        dummy.position.y = u.y;
+        dummy.rotation.set(0, yaw, Math.sin(t * 6 + u.i) * 0.15);
       } else if (u.state === 0) { // marching: walk wobble + bob
         const ph = t * 10 + u.i * 1.7;
         dummy.rotation.set(0, yaw, Math.sin(ph) * 0.12);
